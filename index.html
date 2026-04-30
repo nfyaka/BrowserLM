@@ -1,0 +1,2091 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <meta name="description" content="Ask questions about your files in the browser — local and private." />
+    <meta name="theme-color" content="#09090b" />
+    <meta name="color-scheme" content="dark" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="BrowserLM" />
+    <title>BrowserLM — Local AI</title>
+    <link rel="icon" href="./favicon.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="./favicon.svg" />
+    <link rel="manifest" href="./manifest.webmanifest" />
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
+                    },
+                    colors: {
+                        zinc: {
+                            850: '#1f1f22',
+                            950: '#09090b',
+                        }
+                    },
+                    animation: {
+                        'fade-in-up': 'fadeInUp 0.3s ease-out forwards',
+                        'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                        'slide-in': 'slideIn 0.3s ease-out forwards',
+                    },
+                    keyframes: {
+                        fadeInUp: {
+                            '0%': { opacity: '0', transform: 'translateY(10px)' },
+                            '100%': { opacity: '1', transform: 'translateY(0)' },
+                        },
+                        slideIn: {
+                            '0%': { opacity: '0', transform: 'translateY(-20px)' },
+                            '100%': { opacity: '1', transform: 'translateY(0)' },
+                        }
+                    }
+                },
+            },
+        };
+    </script>
+    
+    <script src="https://unpkg.com/lucide@0.460.0/dist/umd/lucide.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked@12.0.1/marked.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/dompurify@3.1.7/dist/purify.min.js"></script>
+    <link href="https://cdn.jsdelivr.net/npm/slim-select@2.10.0/dist/slimselect.css" rel="stylesheet" />
+    <script src="https://cdn.jsdelivr.net/npm/slim-select@2.10.0/dist/slimselect.min.js"></script>
+    
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap');
+
+        body {
+            background-color: #09090b;
+            color: #e4e4e7;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #3f3f46; border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: #52525b; }
+
+        .prose-chat { font-size: 0.9rem; line-height: 1.6; word-wrap: break-word; }
+        .prose-chat p { margin-bottom: 0.85em; white-space: pre-wrap; } 
+        .prose-chat p:last-child { margin-bottom: 0; }
+        .prose-chat a { color: #60a5fa; text-decoration: underline; text-underline-offset: 3px; }
+        .prose-chat strong { color: #ffffff; font-weight: 600; }
+        .prose-chat ul { list-style-type: disc; padding-left: 1.5em; margin-bottom: 0.85em; }
+        .prose-chat ol { list-style-type: decimal; padding-left: 1.5em; margin-bottom: 0.85em; }
+        .prose-chat li { margin-bottom: 0.25em; }
+        .prose-chat pre {
+            background: #18181b; padding: 1rem; border-radius: 0.75rem;
+            overflow-x: auto; margin-top: 0.5em; margin-bottom: 1em;
+            border: 1px solid #27272a;
+        }
+        .prose-chat code {
+            background: #27272a; padding: 0.15em 0.4em; border-radius: 0.375rem;
+            font-size: 0.85em; color: #d4d4d8; font-family: ui-monospace, Consolas, monospace;
+        }
+        .prose-chat pre code { background: transparent; padding: 0; color: #e4e4e7; }
+        .prose-chat blockquote {
+            border-left: 3px solid #3b82f6; padding-left: 1em; color: #a1a1aa;
+            margin-left: 0; margin-bottom: 0.85em;
+        }
+        
+        #drop-overlay { transition: opacity 0.2s ease, visibility 0.2s ease; }
+        .drag-active #drop-overlay { opacity: 1; visibility: visible; }
+
+        .ss-main {
+            background: #18181b !important;
+            border: 1px solid #3f3f46 !important;
+            border-radius: 0.5rem !important;
+            color: #e4e4e7 !important;
+            min-height: 2.5rem !important;
+            padding: 0.35rem 0.6rem !important;
+        }
+        .ss-main:focus, .ss-main.ss-open-below, .ss-main.ss-open-above {
+            box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.35) !important;
+        }
+        .ss-arrow path { stroke: #a1a1aa !important; }
+        .ss-content {
+            background: #18181b !important;
+            border: 1px solid #3f3f46 !important;
+            border-radius: 0.5rem !important;
+            color: #e4e4e7 !important;
+            z-index: 95 !important;
+            transform: none !important;
+            transition: opacity 0.12s ease !important;
+        }
+        .ss-content.ss-open-below,
+        .ss-content.ss-open-above {
+            transform: none !important;
+            opacity: 1 !important;
+        }
+        .ss-option { color: #e4e4e7 !important; }
+        .ss-option:hover, .ss-option.ss-highlighted { background: #27272a !important; }
+        .ss-option.ss-selected { background: rgba(59, 130, 246, 0.15) !important; }
+        .ss-search input {
+            background: #09090b !important;
+            border-color: #3f3f46 !important;
+            color: #e4e4e7 !important;
+        }
+        #sidebar .ss-main {
+            font-size: 0.75rem !important;
+            min-height: 2rem !important;
+            padding: 0.28rem 0.5rem !important;
+        }
+
+        .ss-content:not(.ss-open-below):not(.ss-open-above) {
+            pointer-events: none !important;
+            visibility: hidden !important;
+        }
+        .ss-content.ss-open-below,
+        .ss-content.ss-open-above {
+            pointer-events: auto !important;
+            visibility: visible !important;
+        }
+
+        #sidebar .ss-main select,
+        #setup-modal .ss-main select {
+            pointer-events: none !important;
+        }
+    </style>
+</head>
+<body class="flex flex-col h-[100dvh] overflow-hidden bg-zinc-950">
+
+    <div id="file-protocol-banner" class="hidden shrink-0 z-[90] relative px-4 py-2 bg-amber-950/90 border-b border-amber-800/50 text-amber-200 text-xs text-center">
+        Open this page via a local HTTP server (not file://), otherwise ES modules and the model cache may not work.
+    </div>
+
+    <script>
+        marked.use({ breaks: true, gfm: true });
+    </script>
+
+    <div id="setup-modal" class="hidden fixed inset-0 z-[85] flex items-center justify-center bg-black/80 backdrop-blur-md transition-opacity p-4">
+        <div class="bg-zinc-900 border border-zinc-800 p-6 rounded-2xl max-w-md w-full shadow-2xl relative overflow-hidden animate-slide-in max-h-[90vh] overflow-y-auto flex flex-col">
+            <div class="absolute top-0 left-0 w-full h-1 bg-blue-500"></div>
+            
+            <h2 class="text-xl font-semibold text-white flex items-center gap-2 mb-2">
+                <i data-lucide="brain-circuit" class="w-5 h-5 text-blue-400"></i>
+                Welcome to BrowserLM
+            </h2>
+            
+            <p class="text-sm text-zinc-400 mb-5 leading-relaxed">
+                This is a fully local AI client. Chat with the model or upload your own documents (PDF, TXT, CSV) and ask questions about them.
+                <strong class="text-zinc-300">Your files are never uploaded</strong> — all processing happens in this browser.
+            </p>
+            
+            <div class="bg-zinc-950 border border-zinc-800 rounded-xl p-4 mb-6 space-y-3">
+                <div class="flex justify-between items-center text-sm">
+                    <span class="text-zinc-400">Hardware acceleration:</span>
+                    <span id="setup-gpu-status" class="font-medium text-amber-400">Checking...</span>
+                </div>
+                <div class="pt-3 mt-3 border-t border-zinc-800">
+                    <label class="block text-xs text-zinc-500 mb-2">Choose AI model (LLM):</label>
+                    <select id="setup-model-select" class="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2 text-zinc-200 text-sm focus:ring-2 focus:ring-blue-500 outline-none mb-3">
+                    </select>
+
+                    <label class="block text-xs text-zinc-500 mb-2">Embedding model:</label>
+                    <select id="setup-emb-select" class="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2 text-zinc-200 text-sm focus:ring-2 focus:ring-blue-500 outline-none">
+                    </select>
+                </div>
+            </div>
+
+            <div class="flex items-center justify-between">
+                <div class="text-xs text-zinc-500 flex flex-col">
+                    <span>Download size:</span>
+                    <span id="setup-size-estimate" class="text-zinc-300 font-medium">~0 MB</span>
+                </div>
+                <button id="btn-start-download" class="px-5 py-2.5 bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium rounded-xl transition-all shadow-lg shadow-blue-900/20 active:scale-95 flex items-center gap-2">
+                    <span id="btn-start-text">Get started</span>
+                    <i data-lucide="arrow-right" class="w-4 h-4"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div id="info-modal" class="hidden fixed inset-0 z-[86] flex items-center justify-center bg-black/80 backdrop-blur-md p-4" aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="info-modal-title">
+        <div id="info-modal-panel" class="bg-zinc-900 border border-zinc-800 p-6 rounded-2xl max-w-md w-full shadow-2xl relative max-h-[90vh] overflow-y-auto">
+            <div class="absolute top-0 left-0 w-full h-1 bg-blue-500 rounded-t-2xl"></div>
+            <div class="flex items-start justify-between gap-3 mb-4">
+                <h2 id="info-modal-title" class="text-lg font-semibold text-white flex items-center gap-2 pr-2">
+                    <i data-lucide="info" class="w-5 h-5 text-blue-400 shrink-0"></i>
+                    About BrowserLM
+                </h2>
+                <button type="button" id="btn-close-info" class="p-1.5 text-zinc-400 hover:text-white rounded-md hover:bg-zinc-800 transition-colors shrink-0" aria-label="Close">
+                    <i data-lucide="x" class="w-4 h-4"></i>
+                </button>
+            </div>
+            <div class="text-sm text-zinc-400 space-y-3 leading-relaxed">
+                <p>
+                    <strong class="text-zinc-300">BrowserLM</strong> is a private, in-browser AI client: chat and RAG with no custom backend. Models run locally in your tab via Transformers.js (ONNX, WebGPU when available, WASM fallback).
+                </p>
+                <p>
+                    Upload <strong class="text-zinc-300">TXT, Markdown, CSV, JSON, or PDF</strong> and ask questions. Chunks and embeddings are stored in <strong class="text-zinc-300">IndexedDB</strong> on your device — your files are not sent to a server.
+                </p>
+                <p class="text-xs text-zinc-500">
+                    Serve the app over <strong class="text-zinc-400">http://</strong> (not <code class="text-zinc-500">file://</code>) so ES modules and the model cache work.
+                </p>
+                <p>
+                    <a href="https://github.com/nfyaka/BrowserLM" target="_blank" rel="noopener noreferrer" class="text-blue-400 hover:text-blue-300 underline underline-offset-2">Project on GitHub</a>
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <div id="drop-overlay" class="invisible opacity-0 fixed inset-0 z-[100] bg-zinc-950/90 backdrop-blur-md flex items-center justify-center border-2 border-dashed border-blue-500/50 m-4 rounded-3xl">
+        <div class="text-center text-blue-400 flex flex-col items-center gap-4">
+            <div class="p-4 bg-blue-500/10 rounded-full">
+                <i data-lucide="upload-cloud" class="w-16 h-16 animate-bounce"></i>
+            </div>
+            <h2 class="text-2xl font-semibold text-white">Drop files to upload</h2>
+            <p class="text-zinc-400">Text, Markdown, CSV, JSON, PDF</p>
+        </div>
+    </div>
+
+    <div class="flex flex-1 min-h-0 overflow-hidden relative">
+        <div id="sidebar-backdrop" class="fixed inset-0 bg-black/50 z-30 hidden lg:hidden backdrop-blur-sm transition-opacity opacity-0"></div>
+
+        <aside id="sidebar" class="absolute inset-y-0 left-0 z-40 w-[300px] lg:w-[320px] shrink-0 min-h-0 max-h-full overflow-hidden border-r border-zinc-800 bg-zinc-900/95 lg:bg-zinc-900/80 backdrop-blur-xl flex flex-col shadow-2xl lg:shadow-none transform -translate-x-full lg:relative lg:translate-x-0 transition-transform duration-300 ease-in-out h-full isolate">
+            <div class="px-5 h-16 border-b border-zinc-800 flex items-center justify-between">
+                <div class="flex items-center gap-3">
+                    <div class="w-8 h-8 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-blue-900/20">
+                        <i data-lucide="brain-circuit" class="w-4 h-4 text-white"></i>
+                    </div>
+                    <div>
+                        <h1 class="text-base font-semibold text-zinc-100 leading-tight">BrowserLM</h1>
+                        <p class="text-[10px] text-zinc-500">Local AI</p>
+                    </div>
+                </div>
+                <div class="flex items-center gap-0.5 shrink-0">
+                    <button type="button" id="btn-info" class="p-1.5 text-zinc-400 hover:text-white rounded-md hover:bg-zinc-800 transition-colors" title="About this app">
+                        <i data-lucide="info" class="w-4 h-4"></i>
+                    </button>
+                    <button type="button" id="btn-close-sidebar" class="lg:hidden p-1.5 text-zinc-400 hover:text-white rounded-md hover:bg-zinc-800 transition-colors" aria-label="Close sidebar">
+                        <i data-lucide="x" class="w-4 h-4"></i>
+                    </button>
+                </div>
+            </div>
+
+            <div class="p-4 border-b border-zinc-800">
+                <label id="label-file-upload" class="relative overflow-hidden flex items-center justify-center gap-2 w-full py-2.5 px-4 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-200 border border-zinc-700 cursor-pointer text-sm font-medium transition-all active:scale-[0.98]">
+                    <i data-lucide="file-plus" class="w-4 h-4 text-blue-400"></i>
+                    Add documents
+                    <input id="file-input" type="file" multiple class="hidden" disabled accept=".txt,.md,.csv,.json,.pdf,text/plain" />
+                </label>
+            </div>
+
+            <div class="flex-1 min-h-0 min-w-0 overflow-y-auto overscroll-y-contain p-3 space-y-2" id="sources-list"></div>
+
+            <div id="sidebar-settings" class="shrink-0 flex flex-col min-h-0 max-h-[min(46vh,380px)] overflow-y-auto overscroll-y-contain border-t border-zinc-800 bg-zinc-950/50 p-4 space-y-3">
+                <div class="flex items-center justify-between mb-1">
+                    <label class="text-[11px] font-medium text-zinc-500 uppercase tracking-wider">Generation (LLM)</label>
+                    <span id="device-badge" class="text-[9px] px-1.5 py-0.5 rounded-md bg-zinc-800 border border-zinc-700 text-zinc-400 font-mono">...</span>
+                </div>
+                <select id="select-gen-model" class="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-2 py-2 text-zinc-200 text-xs focus:ring-2 focus:ring-blue-500/50 outline-none transition-all cursor-pointer">
+                </select>
+
+                <div class="flex items-center justify-between mb-1 mt-3">
+                    <label class="text-[11px] font-medium text-zinc-500 uppercase tracking-wider">Search (Embeddings)</label>
+                </div>
+                <select id="select-emb-model" class="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-2 py-2 text-zinc-200 text-xs focus:ring-2 focus:ring-blue-500/50 outline-none transition-all cursor-pointer">
+                </select>
+                
+                <div class="mt-3 pt-3 border-t border-zinc-800 space-y-2">
+                    <div class="text-[11px] font-medium text-zinc-500 uppercase tracking-wider">Model cache</div>
+                    <div id="cache-models-panel" class="space-y-2 text-xs"></div>
+                </div>
+
+                <button type="button" id="btn-clear-sources" class="w-full py-2 px-3 rounded-lg border border-red-900/30 text-red-400 text-xs hover:bg-red-950/50 transition-colors flex items-center justify-center gap-2 mt-4">
+                    <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                    Clear memory
+                </button>
+            </div>
+        </aside>
+
+        <main class="flex-1 flex flex-col min-w-0 min-h-0 bg-zinc-950">
+            <header class="relative z-[70] h-16 shrink-0 px-4 lg:px-6 border-b border-zinc-800 flex items-center justify-between backdrop-blur-md bg-zinc-950/80 sticky top-0">
+                <div class="flex items-center gap-3">
+                    <button id="btn-open-sidebar" class="lg:hidden p-2 -ml-2 text-zinc-400 hover:text-white rounded-md hover:bg-zinc-800 transition-colors">
+                        <i data-lucide="menu" class="w-5 h-5"></i>
+                    </button>
+                    <div class="flex items-center gap-2" id="header-status-area">
+                        <span id="status-dot" class="w-2 h-2 rounded-full bg-zinc-600"></span>
+                        <span id="status-text" class="text-sm font-medium text-zinc-300">Waiting to start...</span>
+                    </div>
+                </div>
+                <button type="button" id="btn-clear-chat" class="relative z-[71] p-2 text-zinc-500 hover:text-zinc-300 rounded-lg hover:bg-zinc-800 transition-colors" title="Clear chat">
+                    <i data-lucide="eraser" class="w-4 h-4"></i>
+                </button>
+            </header>
+
+            <div id="progress-wrap" class="hidden shrink-0 border-b border-zinc-800 bg-zinc-900/50 p-3 shadow-inner">
+                <div class="flex justify-between items-center gap-2 mb-2">
+                    <div class="text-xs text-zinc-300 font-medium flex items-center gap-2 min-w-0" id="progress-label">
+                        <i data-lucide="loader" class="w-3 h-3 animate-spin text-blue-400 shrink-0"></i>
+                        <span class="truncate">Loading models...</span>
+                    </div>
+                    <div class="flex items-center gap-2 shrink-0">
+                        <div class="text-[11px] text-zinc-500 font-mono hidden sm:block" id="progress-stats">0 MB / 0 MB (0 MB/s)</div>
+                        <button type="button" id="btn-cancel-model-load" class="hidden text-[11px] px-2.5 py-1 rounded-lg border border-zinc-600 text-zinc-300 hover:bg-zinc-800 hover:text-white transition-colors whitespace-nowrap">
+                            Cancel
+                        </button>
+                    </div>
+                </div>
+                <div class="text-[11px] text-zinc-500 font-mono sm:hidden mb-2" id="progress-stats-mobile">0 MB / 0 MB</div>
+                <div class="h-1.5 w-full bg-zinc-800 rounded-full overflow-hidden">
+                    <div id="progress-bar" class="h-full bg-blue-500 transition-all duration-200 ease-linear" style="width: 0%"></div>
+                </div>
+                <div class="text-[10px] text-zinc-500 mt-1.5 flex justify-between">
+                    <span id="progress-eta">Remaining: --:--</span>
+                    <span id="progress-pct">0%</span>
+                </div>
+            </div>
+
+            <div id="chat-scroll" class="flex-1 overflow-y-auto p-4 lg:p-6 space-y-6 scroll-smooth">
+            </div>
+
+            <footer class="shrink-0 p-4 lg:p-6 border-t border-zinc-800 bg-zinc-950/90 backdrop-blur-xl relative">
+                <div class="max-w-4xl mx-auto relative">
+                    <form id="chat-form" class="relative flex items-end gap-2 bg-zinc-900 border border-zinc-700 rounded-2xl p-2 focus-within:ring-2 focus-within:ring-blue-500/50 transition-all shadow-sm">
+                        <textarea
+                            id="chat-input"
+                            rows="1"
+                            disabled
+                            placeholder="Waiting for models..."
+                            class="flex-1 min-h-[44px] max-h-48 resize-none bg-transparent px-3 py-1 md:py-3 leading-relaxed text-sm text-zinc-100 focus:outline-none placeholder:text-zinc-500 scrollbar-thin self-center"
+                        ></textarea>
+                        <button
+                            type="submit"
+                            id="btn-send"
+                            data-mode="send"
+                            disabled
+                            class="shrink-0 w-11 h-11 rounded-xl bg-blue-600 hover:bg-blue-500 text-white flex items-center justify-center transition-all disabled:opacity-50 disabled:cursor-not-allowed self-end mb-0.5 mr-0.5"
+                        >
+                            <i data-lucide="send" class="w-4 h-4 ml-0.5"></i>
+                        </button>
+                    </form>
+                    <div class="text-center mt-3 space-y-1">
+                        <p class="text-[10px] text-zinc-600">
+                            AI can make mistakes. Verify facts against your original documents.
+                            <a href="https://github.com/nfyaka/BrowserLM" target="_blank" rel="noopener noreferrer" class="text-zinc-600 hover:text-zinc-400 transition-colors">Project on GitHub</a>
+                        </p>
+                    </div>
+                </div>
+            </footer>
+        </main>
+    </div>
+
+    <div id="app-dialog" class="hidden fixed inset-0 z-[110] flex items-center justify-center bg-black/70 backdrop-blur-sm p-4" aria-hidden="true" role="dialog" aria-modal="true" aria-describedby="app-dialog-message">
+        <div class="bg-zinc-900 border border-zinc-700 rounded-2xl max-w-md w-full shadow-2xl p-5 relative" id="app-dialog-panel">
+            <h3 id="app-dialog-title" class="text-sm font-semibold text-white mb-2 hidden"></h3>
+            <p id="app-dialog-message" class="text-sm text-zinc-300 leading-relaxed whitespace-pre-wrap"></p>
+            <div id="app-dialog-actions-alert" class="mt-5 flex justify-end">
+                <button type="button" id="app-dialog-ok" class="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium transition-colors">OK</button>
+            </div>
+            <div id="app-dialog-actions-confirm" class="hidden mt-5 flex justify-end gap-2">
+                <button type="button" id="app-dialog-cancel" class="px-4 py-2 rounded-xl border border-zinc-600 text-zinc-300 hover:bg-zinc-800 text-sm transition-colors">Cancel</button>
+                <button type="button" id="app-dialog-confirm" class="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium transition-colors">Confirm</button>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import {
+            pipeline,
+            env,
+            TextStreamer,
+            AutoProcessor,
+            AutoModelForImageTextToText,
+            RawImage,
+        } from "https://esm.sh/@huggingface/transformers@4.2.0";
+
+        env.allowLocalModels = false;
+        env.useBrowserCache = true;
+
+        const DOMPurify = globalThis.DOMPurify;
+        const marked = globalThis.marked;
+        const lucide = globalThis.lucide;
+
+        const escHtml = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
+
+        const sanitizeChatHtml = (dirty) => {
+            if (DOMPurify?.sanitize) return DOMPurify.sanitize(dirty);
+            try {
+                const doc = new DOMParser().parseFromString(String(dirty), 'text/html');
+                const t = doc.body?.textContent ?? '';
+                return escHtml(t).replace(/\n/g, '<br>');
+            } catch (_) {
+                return escHtml(dirty);
+            }
+        };
+
+        const ENV_FETCH_BASE = env.fetch.bind(env);
+
+        const mergeFetchAbortSignals = (a, b) => {
+            if (a && b && typeof AbortSignal !== 'undefined' && typeof AbortSignal.any === 'function') {
+                try { return AbortSignal.any([a, b]); } catch (_) {}
+            }
+            return b || a;
+        };
+
+        const EMB_MODELS = {
+            minilm: {
+                id: "onnx-community/all-MiniLM-L6-v2-ONNX",
+                label: "MiniLM L6 (Default, reliable)",
+                paramsShort: "22M",
+                approxSizeMb: 25
+            },
+            gte_small: {
+                id: "Xenova/gte-small",
+                label: "GTE Small (English, higher quality)",
+                paramsShort: "33M",
+                approxSizeMb: 65
+            },
+            multilingual: {
+                id: "Xenova/paraphrase-multilingual-MiniLM-L12-v2",
+                label: "Multilingual MiniLM (multilingual RAG)",
+                paramsShort: "118M",
+                approxSizeMb: 400
+            }
+        };
+
+        const GEN_MODELS = {
+            lfm2_350m: {
+                id: "onnx-community/LFM2-350M-ONNX",
+                label: "LFM2 (350M)",
+                paramsShort: "350M",
+                paramBillions: 0.35,
+                approxSizeMb: 700,
+                dtypes: [{ device: "webgpu", dtype: "q4f16" }, { device: "wasm", dtype: "q8" }]
+            },
+            granite_350m: {
+                id: "onnx-community/granite-4.0-350m-ONNX-web",
+                label: "Granite 4.0 (350M)",
+                paramsShort: "350M",
+                paramBillions: 0.35,
+                approxSizeMb: 350,
+                dtypes: [{ device: "webgpu", dtype: "q4f16" }, { device: "wasm", dtype: "q8" }]
+            },
+            lfm2_700m: {
+                id: "onnx-community/LFM2-700M-ONNX",
+                label: "LFM2 (700M)",
+                paramsShort: "700M",
+                paramBillions: 0.7,
+                approxSizeMb: 720,
+                dtypes: [{ device: "webgpu", dtype: "q4f16" }, { device: "wasm", dtype: "q8" }]
+            },
+            llama32_1b: {
+                id: "onnx-community/Llama-3.2-1B-Instruct-q4f16",
+                label: "Llama 3.2 Instruct (1B, ONNX)",
+                paramsShort: "1B",
+                paramBillions: 1,
+                approxSizeMb: 900,
+                dtypes: [{ device: "webgpu", dtype: "q4f16" }, { device: "wasm", dtype: "q8" }]
+            },
+            gemma3_1b: {
+                id: "onnx-community/gemma-3-1b-it-ONNX",
+                label: "Gemma 3 Instruct (1B)",
+                paramsShort: "1B",
+                paramBillions: 1,
+                approxSizeMb: 1300,
+                dtypes: [{ device: "webgpu", dtype: "q4f16" }, { device: "wasm", dtype: "q8" }]
+            },
+            phi35_mini: {
+                id: "onnx-community/Phi-3.5-mini-instruct-onnx-web",
+                label: "Phi-3.5 Mini Instruct",
+                paramsShort: "~3.8B",
+                paramBillions: 3.8,
+                approxSizeMb: 2300,
+                dtypes: [{ device: "webgpu", dtype: "q4f16" }, { device: "wasm", dtype: "q8" }]
+            },
+            lfm25_vl_450m: {
+                id: "onnx-community/LFM2.5-VL-450M-ONNX",
+                label: "LFM2.5-VL (450M, vision+text, WebGPU)",
+                paramsShort: "450M",
+                paramBillions: 0.45,
+                approxSizeMb: 1200,
+                vl: true,
+                vlBackend: "lfm2_vl",
+                vlDtype: {
+                    embed_tokens: "fp16",
+                    decoder_model_merged: "q4f16",
+                    vision_encoder: "fp16",
+                },
+            },
+            qwen35_08b_opt: {
+                id: "onnx-community/Qwen3.5-0.8B-ONNX-OPT",
+                label: "Qwen3.5 (0.8B OPT, VL, WebGPU)",
+                paramsShort: "0.8B",
+                paramBillions: 0.8,
+                approxSizeMb: 1900,
+                vl: true,
+                vlBackend: "qwen35",
+                vlDtype: {
+                    embed_tokens: "q4",
+                    vision_encoder: "fp16",
+                    decoder_model_merged: "q4",
+                },
+            },
+            qwen35_2b_opt: {
+                id: "onnx-community/Qwen3.5-2B-ONNX-OPT",
+                label: "Qwen3.5 (2B OPT, VL, WebGPU)",
+                paramsShort: "2B",
+                paramBillions: 2,
+                approxSizeMb: 4800,
+                vl: true,
+                vlBackend: "qwen35",
+                vlDtype: {
+                    embed_tokens: "q4",
+                    vision_encoder: "fp16",
+                    decoder_model_merged: "q4",
+                },
+            },
+            gemma4_e2b_it: {
+                id: "onnx-community/gemma-4-E2B-it-ONNX",
+                label: "Gemma 4 Instruct E2B (VL, WebGPU)",
+                paramsShort: "~2.3B eff.",
+                paramBillions: 2.3,
+                approxSizeMb: 3200,
+                vl: true,
+                vlBackend: "gemma4",
+                vlDtype: "q4f16",
+                vlTemplateExtra: { enable_thinking: false },
+            },
+            gemma4_e4b_it: {
+                id: "onnx-community/gemma-4-E4B-it-ONNX",
+                label: "Gemma 4 Instruct E4B (VL, WebGPU)",
+                paramsShort: "~4.5B eff.",
+                paramBillions: 4.5,
+                approxSizeMb: 5200,
+                vl: true,
+                vlBackend: "gemma4",
+                vlDtype: "q4f16",
+                vlTemplateExtra: { enable_thinking: false },
+            },
+        };
+
+        let blankVlPlaceholderImage = null;
+        const getBlankVlPlaceholderImage = () => {
+            if (!blankVlPlaceholderImage) {
+                const c = document.createElement("canvas");
+                c.width = 64;
+                c.height = 64;
+                const ctx = c.getContext("2d");
+                ctx.fillStyle = "#f4f4f5";
+                ctx.fillRect(0, 0, 64, 64);
+                blankVlPlaceholderImage = RawImage.fromCanvas(c);
+            }
+            return blankVlPlaceholderImage;
+        };
+
+        const isVlGeneratorBundle = (g) => g && g.__kind === "vl" && g.model && g.processor;
+
+        const coerceMessagesForVl = (messages) =>
+            messages.map((m) => {
+                if (typeof m.content === "string") {
+                    return { role: m.role, content: [{ type: "text", text: m.content }] };
+                }
+                return m;
+            });
+
+        const prepareVlModelInputs = async (spec, processor, messages) => {
+            let msgs = coerceMessagesForVl(messages);
+            if (spec.vlBackend === "lfm2_vl") {
+                msgs = msgs.map((m) => {
+                    if (m.role !== "user" || !Array.isArray(m.content)) return m;
+                    const hasImg = m.content.some((x) => x && x.type === "image");
+                    if (hasImg) return m;
+                    return { ...m, content: [{ type: "image" }, ...m.content] };
+                });
+            }
+            const templateOpts = { tokenize: false, add_generation_prompt: true };
+            if (spec.vlTemplateExtra && typeof spec.vlTemplateExtra === "object") {
+                Object.assign(templateOpts, spec.vlTemplateExtra);
+            }
+            const prompt = processor.apply_chat_template(msgs, templateOpts);
+            if (spec.vlBackend === "lfm2_vl") {
+                const img = getBlankVlPlaceholderImage();
+                return processor(img, prompt, { add_special_tokens: false });
+            }
+            if (spec.vlBackend === "qwen35") {
+                return processor(prompt);
+            }
+            if (spec.vlBackend === "gemma4") {
+                return processor(prompt, null, null, { add_special_tokens: false });
+            }
+            throw new Error("Unknown VL backend: " + spec.vlBackend);
+        };
+
+        const DB_NAME = "LocalRAGChatDB";
+        const DB_VER = 2;
+
+        const LS_MODEL_KEY = 'browserlm_selected_model';
+        const LS_EMB_KEY = 'browserlm_selected_emb';
+        const LS_MODEL_KEY_LEGACY = 'chatrag_selected_model';
+        const LS_EMB_KEY_LEGACY = 'chatrag_selected_emb';
+
+        let savedGen = localStorage.getItem(LS_MODEL_KEY) || localStorage.getItem(LS_MODEL_KEY_LEGACY);
+        if (!GEN_MODELS[savedGen]) savedGen = "lfm2_350m";
+
+        let savedEmb = localStorage.getItem(LS_EMB_KEY) || localStorage.getItem(LS_EMB_KEY_LEGACY);
+        if (!EMB_MODELS[savedEmb]) savedEmb = "multilingual";
+
+        const State = {
+            embedder: null,
+            generator: null,
+            generatorKey: savedGen,
+            embedderKey: savedEmb,
+            isLoading: false,
+            isReady: false,
+            device: "",
+            cachedModels: new Set(),
+            cachedEmb: new Set(),
+            slimSelects: [],
+            genAbortController: null,
+            stopGenerationRequested: false,
+            modelLoadGeneration: 0,
+            modelLoadAbortController: null
+        };
+
+        const DOM = {
+            statusDot: document.getElementById('status-dot'),
+            statusText: document.getElementById('status-text'),
+            progWrap: document.getElementById('progress-wrap'),
+            progBar: document.getElementById('progress-bar'),
+            progLabel: document.getElementById('progress-label'),
+            progStats: document.getElementById('progress-stats'),
+            progEta: document.getElementById('progress-eta'),
+            progPct: document.getElementById('progress-pct'),
+            fileInput: document.getElementById('file-input'),
+            genSelect: document.getElementById('select-gen-model'),
+            embSelect: document.getElementById('select-emb-model'),
+            chatInput: document.getElementById('chat-input'),
+            btnSend: document.getElementById('btn-send'),
+            chatScroll: document.getElementById('chat-scroll'),
+            sourcesList: document.getElementById('sources-list'),
+            deviceBadge: document.getElementById('device-badge'),
+            setupModal: document.getElementById('setup-modal'),
+            setupModelSelect: document.getElementById('setup-model-select'),
+            setupEmbSelect: document.getElementById('setup-emb-select'),
+            setupGpu: document.getElementById('setup-gpu-status'),
+            setupSize: document.getElementById('setup-size-estimate'),
+            btnStartDownload: document.getElementById('btn-start-download'),
+            sidebar: document.getElementById('sidebar'),
+            btnCancelModelLoad: document.getElementById('btn-cancel-model-load'),
+            progStatsMobile: document.getElementById('progress-stats-mobile'),
+            cacheModelsPanel: document.getElementById('cache-models-panel'),
+            appDialog: document.getElementById('app-dialog'),
+            appDialogPanel: document.getElementById('app-dialog-panel'),
+            appDialogTitle: document.getElementById('app-dialog-title'),
+            appDialogMessage: document.getElementById('app-dialog-message'),
+            appDialogActionsAlert: document.getElementById('app-dialog-actions-alert'),
+            appDialogActionsConfirm: document.getElementById('app-dialog-actions-confirm'),
+            appDialogOk: document.getElementById('app-dialog-ok'),
+            appDialogCancel: document.getElementById('app-dialog-cancel'),
+            appDialogConfirm: document.getElementById('app-dialog-confirm'),
+            infoModal: document.getElementById('info-modal'),
+            infoModalPanel: document.getElementById('info-modal-panel'),
+            btnInfo: document.getElementById('btn-info'),
+            btnCloseInfo: document.getElementById('btn-close-info')
+        };
+
+        let appDialogHandlers = null;
+
+        const openAppDialog = () => {
+            DOM.appDialog.classList.remove('hidden');
+            DOM.appDialog.setAttribute('aria-hidden', 'false');
+        };
+
+        const closeAppDialog = () => {
+            DOM.appDialog.classList.add('hidden');
+            DOM.appDialog.setAttribute('aria-hidden', 'true');
+        };
+
+        const finishAppDialog = (value) => {
+            const h = appDialogHandlers;
+            appDialogHandlers = null;
+            closeAppDialog();
+            if (h) h.resolve(value);
+        };
+
+        const showAppAlert = (message, title = '') => {
+            return new Promise((resolve) => {
+                appDialogHandlers = { resolve, mode: 'alert' };
+                DOM.appDialogMessage.textContent = message;
+                if (title) {
+                    DOM.appDialogTitle.textContent = title;
+                    DOM.appDialogTitle.classList.remove('hidden');
+                } else {
+                    DOM.appDialogTitle.textContent = '';
+                    DOM.appDialogTitle.classList.add('hidden');
+                }
+                DOM.appDialogActionsAlert.classList.remove('hidden');
+                DOM.appDialogActionsConfirm.classList.add('hidden');
+                openAppDialog();
+                requestAnimationFrame(() => DOM.appDialogOk.focus());
+            });
+        };
+
+        const showAppConfirm = (message, title = '', opts = {}) => {
+            const confirmLabel = opts.confirmLabel ?? 'Confirm';
+            const cancelLabel = opts.cancelLabel ?? 'Cancel';
+            return new Promise((resolve) => {
+                appDialogHandlers = { resolve, mode: 'confirm' };
+                DOM.appDialogConfirm.textContent = confirmLabel;
+                DOM.appDialogCancel.textContent = cancelLabel;
+                DOM.appDialogMessage.textContent = message;
+                if (title) {
+                    DOM.appDialogTitle.textContent = title;
+                    DOM.appDialogTitle.classList.remove('hidden');
+                } else {
+                    DOM.appDialogTitle.textContent = '';
+                    DOM.appDialogTitle.classList.add('hidden');
+                }
+                DOM.appDialogActionsAlert.classList.add('hidden');
+                DOM.appDialogActionsConfirm.classList.remove('hidden');
+                openAppDialog();
+                requestAnimationFrame(() => DOM.appDialogCancel.focus());
+            });
+        };
+
+        DOM.appDialogOk.addEventListener('click', () => finishAppDialog(true));
+        DOM.appDialogCancel.addEventListener('click', () => finishAppDialog(false));
+        DOM.appDialogConfirm.addEventListener('click', () => finishAppDialog(true));
+
+        DOM.appDialog.addEventListener('click', (e) => {
+            if (e.target !== DOM.appDialog) return;
+            if (appDialogHandlers?.mode === 'confirm') finishAppDialog(false);
+            else finishAppDialog(undefined);
+        });
+
+        DOM.appDialogPanel.addEventListener('click', (e) => e.stopPropagation());
+
+        DOM.btnInfo.addEventListener('click', () => openInfoModal());
+        DOM.btnCloseInfo.addEventListener('click', () => closeInfoModal());
+        DOM.infoModal.addEventListener('click', (e) => {
+            if (e.target === DOM.infoModal) closeInfoModal();
+        });
+        DOM.infoModalPanel.addEventListener('click', (e) => e.stopPropagation());
+
+        document.addEventListener('keydown', (e) => {
+            if (e.key !== 'Escape') return;
+            if (!DOM.appDialog.classList.contains('hidden') && appDialogHandlers) {
+                e.preventDefault();
+                if (appDialogHandlers.mode === 'confirm') finishAppDialog(false);
+                else finishAppDialog(undefined);
+                return;
+            }
+            if (!DOM.infoModal.classList.contains('hidden')) {
+                e.preventDefault();
+                closeInfoModal();
+            }
+        });
+
+        const closeAllSlimSelects = () => {
+            State.slimSelects.forEach((s) => {
+                try {
+                    s.close();
+                } catch (_) {}
+            });
+        };
+
+        const openInfoModal = () => {
+            closeAllSlimSelects();
+            DOM.infoModal.classList.remove('hidden');
+            DOM.infoModal.setAttribute('aria-hidden', 'false');
+            lucide.createIcons();
+            requestAnimationFrame(() => DOM.btnCloseInfo?.focus());
+        };
+
+        const closeInfoModal = () => {
+            DOM.infoModal.classList.add('hidden');
+            DOM.infoModal.setAttribute('aria-hidden', 'true');
+        };
+
+        DOM.sourcesList?.addEventListener('scroll', closeAllSlimSelects, { passive: true });
+        document.getElementById('sidebar-settings')?.addEventListener('scroll', closeAllSlimSelects, { passive: true });
+
+        const progressFmtEtaSec = (totalSec) => {
+            const sec = Math.max(0, Math.round(Number(totalSec)));
+            const m = Math.floor(sec / 60);
+            const s = sec % 60;
+            return `${m}:${s.toString().padStart(2, '0')}`;
+        };
+
+        class DownloadManager {
+            constructor() {
+                this.slots = [];
+                this.startTime = 0;
+                this.lastUpdate = 0;
+                this.hideTimer = null;
+            }
+            cancelScheduledHide() {
+                if (this.hideTimer) {
+                    clearTimeout(this.hideTimer);
+                    this.hideTimer = null;
+                }
+            }
+            start() {
+                this.cancelScheduledHide();
+                this.slots = [];
+                this.startTime = performance.now();
+                this.lastUpdate = 0;
+                DOM.progBar.style.width = '0%';
+                DOM.progPct.textContent = '0%';
+                DOM.progEta.textContent = 'Remaining: --:--';
+                DOM.progStats.textContent = '0 MB / 0 MB (0 MB/s)';
+                if (DOM.progStatsMobile) DOM.progStatsMobile.textContent = '0 MB / 0 MB';
+                DOM.progLabel.innerHTML = '<i data-lucide="loader" class="w-3 h-3 animate-spin text-blue-400 shrink-0"></i><span class="truncate">Preparing download…</span>';
+                DOM.progWrap.classList.remove('hidden');
+                lucide.createIcons();
+            }
+            findOpenSlot(file) {
+                for (let i = this.slots.length - 1; i >= 0; i--) {
+                    const s = this.slots[i];
+                    if (s.file === file && !s.done) return s;
+                }
+                return null;
+            }
+            update(ev) {
+                if (!this.startTime) this.start();
+                const fileId = ev.file || ev.url || 'file';
+                if (ev.status === 'initiate') {
+                    this.slots.push({
+                        file: fileId,
+                        loaded: 0,
+                        total: Math.max(0, ev.total || 0),
+                        done: false
+                    });
+                } else if (ev.status === 'progress') {
+                    let slot = this.findOpenSlot(fileId);
+                    if (!slot) {
+                        this.slots.push({
+                            file: fileId,
+                            loaded: Math.max(0, ev.loaded || 0),
+                            total: Math.max(0, ev.total || 0),
+                            done: false
+                        });
+                        slot = this.slots[this.slots.length - 1];
+                    }
+                    slot.loaded = Math.max(slot.loaded, ev.loaded || 0);
+                    const t = ev.total || slot.total;
+                    if (t > 0) slot.total = Math.max(slot.total, t);
+                } else if (ev.status === 'done') {
+                    const slot = this.findOpenSlot(fileId);
+                    if (slot) {
+                        const t = slot.total || ev.total || slot.loaded;
+                        slot.total = Math.max(slot.total, t);
+                        slot.loaded = slot.total;
+                        slot.done = true;
+                    }
+                }
+                this.render(ev.name || 'Model weights');
+            }
+            render(modelName) {
+                const now = performance.now();
+                if (now - this.lastUpdate < 120) return;
+                this.lastUpdate = now;
+
+                const active = this.slots.filter((s) => !s.done);
+                const hasActive = active.length > 0;
+
+                let pct = 0;
+                if (hasActive) {
+                    let knownTotal = 0;
+                    let knownLoaded = 0;
+                    let unknownLoaded = 0;
+                    active.forEach((s) => {
+                        if (s.total > 0) {
+                            knownLoaded += s.loaded;
+                            knownTotal += s.total;
+                        } else {
+                            unknownLoaded += s.loaded;
+                        }
+                    });
+                    if (knownTotal > 0) {
+                        pct = Math.min(100, Math.round((knownLoaded / knownTotal) * 100));
+                        if (unknownLoaded > 0) pct = Math.min(pct, 96);
+                    } else if (unknownLoaded > 0) {
+                        const u = unknownLoaded;
+                        pct = Math.min(92, Math.round(18 + 74 * (1 - Math.exp(-u / (18 * 1024 * 1024)))));
+                    } else {
+                        pct = 0;
+                    }
+                } else if (this.slots.length > 0) {
+                    pct = 99;
+                } else {
+                    return;
+                }
+
+                let bytesLoaded = 0;
+                let bytesTotal = 0;
+                this.slots.forEach((s) => {
+                    bytesLoaded += s.loaded;
+                    bytesTotal += s.total > 0 ? s.total : s.loaded;
+                });
+                if (bytesTotal === 0 && bytesLoaded === 0) return;
+
+                const loadedMb = (bytesLoaded / 1024 / 1024).toFixed(1);
+                const totalMb = (bytesTotal / 1024 / 1024).toFixed(1);
+
+                const elapsedSec = (now - this.startTime) / 1000;
+                let speedMb = 0;
+                if (elapsedSec > 0.5) speedMb = (bytesLoaded / 1024 / 1024) / elapsedSec;
+
+                let etaStr = '--:--';
+                if (speedMb > 0 && bytesTotal > bytesLoaded && Number.isFinite(speedMb)) {
+                    const remMb = (bytesTotal - bytesLoaded) / 1024 / 1024;
+                    if (remMb > 0.02) {
+                        const sec = Math.max(0, Math.round(remMb / speedMb));
+                        if (Number.isFinite(sec) && sec < 86400) {
+                            etaStr = progressFmtEtaSec(sec);
+                        }
+                    }
+                }
+
+                const safeLabel = escHtml(String(modelName));
+                DOM.progBar.style.width = `${pct}%`;
+                DOM.progLabel.innerHTML = `<i data-lucide="loader" class="w-3 h-3 animate-spin text-blue-400 shrink-0"></i><span class="truncate">Downloading: ${safeLabel}</span>`;
+                const statsLine = `${loadedMb} / ${totalMb} MB (${speedMb.toFixed(1)} MB/s)`;
+                DOM.progStats.textContent = statsLine;
+                if (DOM.progStatsMobile) DOM.progStatsMobile.textContent = `${loadedMb} / ${totalMb} MB`;
+                DOM.progPct.textContent = `${pct}%`;
+                DOM.progEta.textContent = `Remaining: ${etaStr}`;
+                lucide.createIcons();
+            }
+            finish() {
+                this.cancelScheduledHide();
+                DOM.progBar.style.width = '100%';
+                DOM.progPct.textContent = '100%';
+                DOM.progEta.textContent = 'Remaining: 0:00';
+                if (DOM.progStatsMobile) DOM.progStatsMobile.textContent = 'Done';
+                this.hideTimer = setTimeout(() => {
+                    this.hideTimer = null;
+                    DOM.progWrap.classList.add('hidden');
+                    this.slots = [];
+                    this.startTime = 0;
+                    this.lastUpdate = 0;
+                }, 1000);
+            }
+            dismiss() {
+                this.cancelScheduledHide();
+                this.slots = [];
+                this.startTime = 0;
+                this.lastUpdate = 0;
+                DOM.progBar.style.width = '0%';
+                DOM.progPct.textContent = '0%';
+                DOM.progEta.textContent = 'Remaining: --:--';
+                DOM.progStats.textContent = '0 MB / 0 MB (0 MB/s)';
+                if (DOM.progStatsMobile) DOM.progStatsMobile.textContent = '0 MB / 0 MB';
+                DOM.progWrap.classList.add('hidden');
+            }
+        }
+        const dlManager = new DownloadManager();
+
+        const setStatus = (text, type = 'default') => {
+            DOM.statusText.textContent = text;
+            DOM.statusDot.className = 'w-2 h-2 rounded-full transition-colors ' + 
+                (type === 'work' ? 'bg-amber-400 animate-pulse' : 
+                 type === 'err' ? 'bg-red-500' : 'bg-emerald-500');
+        };
+
+        const setUiGate = (blocked, opts = {}) => {
+            const allowStop = !!opts.allowStopButton;
+            DOM.fileInput.disabled = blocked;
+            DOM.genSelect.disabled = blocked;
+            DOM.embSelect.disabled = blocked;
+            DOM.chatInput.disabled = blocked;
+            DOM.btnSend.disabled = blocked && !allowStop;
+            
+            const lbl = document.getElementById('label-file-upload');
+            if (blocked) {
+                lbl.classList.add('opacity-50', 'pointer-events-none');
+                if(!State.isReady) DOM.chatInput.placeholder = "Preparing AI...";
+            } else {
+                lbl.classList.remove('opacity-50', 'pointer-events-none');
+                DOM.chatInput.placeholder = "Ask anything, or about your uploaded files…";
+                DOM.chatInput.focus();
+            }
+        };
+
+        const setSendButtonGenerationMode = (generating) => {
+            const btn = DOM.btnSend;
+            const iconClass = 'w-4 h-4 ml-0.5';
+            if (generating) {
+                btn.type = 'button';
+                btn.dataset.mode = 'stop';
+                btn.title = 'Stop generation';
+                btn.classList.remove('bg-blue-600', 'hover:bg-blue-500', 'disabled:opacity-50');
+                btn.classList.add('bg-red-600', 'hover:bg-red-500');
+                btn.innerHTML = `<i data-lucide="square" class="${iconClass}"></i>`;
+            } else {
+                btn.type = 'submit';
+                btn.dataset.mode = 'send';
+                btn.title = '';
+                btn.classList.remove('bg-red-600', 'hover:bg-red-500');
+                btn.classList.add('bg-blue-600', 'hover:bg-blue-500', 'disabled:opacity-50', 'disabled:cursor-not-allowed');
+                btn.innerHTML = `<i data-lucide="send" class="${iconClass}"></i>`;
+            }
+            lucide.createIcons();
+        };
+
+        const appendMessage = async (role, content, isHtml = false, saveToDb = true, opts = {}) => {
+            const wrap = document.createElement('div');
+            wrap.className = `flex w-full animate-fade-in-up ${role === 'user' ? 'justify-end' : 'justify-start'}`;
+            
+            let bubbleHtml = '';
+            if (role === 'user') {
+                bubbleHtml = `
+                    <div class="max-w-[85%] bg-blue-600 text-white rounded-2xl rounded-tr-sm px-4 py-3 text-[15px] shadow-md break-words">
+                        ${isHtml ? content : sanitizeChatHtml(content).replace(/\n/g, '<br>')}
+                    </div>
+                `;
+            } else {
+                const uniqueId = "asst-" + Date.now() + "-" + Math.random().toString(36).slice(2, 8);
+                const pipelineBlock = opts.pipeline ? `
+                    <div id="${uniqueId}-pipe" class="mb-3 -mx-1">
+                        <div id="${uniqueId}-p1" class="inline-flex max-w-full items-center gap-1.5 rounded-lg bg-zinc-800/60 px-2.5 py-1.5 text-[11px] text-zinc-500 leading-tight">
+                            <i data-lucide="loader" class="w-3.5 h-3.5 animate-spin text-blue-400/90 shrink-0"></i>
+                            <span class="min-w-0">Searching documents…</span>
+                        </div>
+                    </div>` : '';
+                bubbleHtml = `
+                    <div class="flex gap-3 max-w-[95%] lg:max-w-[85%]">
+                        <div class="w-8 h-8 rounded-full bg-zinc-800 border border-zinc-700 flex items-center justify-center shrink-0 mt-1 shadow-inner">
+                            <i data-lucide="bot" class="w-4 h-4 text-blue-400"></i>
+                        </div>
+                        <div class="flex flex-col gap-1 min-w-0 w-full">
+                            <div class="bg-zinc-900 border border-zinc-800 text-zinc-200 rounded-2xl rounded-tl-sm px-5 py-4 shadow-sm prose-chat w-full">
+                                ${pipelineBlock}
+                                <div id="${uniqueId}" class="${content ? '' : (!opts.pipeline ? 'animate-pulse-slow text-zinc-500' : 'text-zinc-300 min-h-[1.25em]')}">
+                                    ${content ? (isHtml ? content : sanitizeChatHtml(marked.parse(content))) : (opts.pipeline ? '' : 'Thinking...')}
+                                </div>
+                            </div>
+                            <div id="${uniqueId}-meta" class="text-[10px] text-zinc-500 pl-1 h-3 empty:hidden"></div>
+                        </div>
+                    </div>
+                `;
+                wrap.dataset.msgId = uniqueId;
+            }
+            
+            wrap.innerHTML = bubbleHtml;
+            DOM.chatScroll.appendChild(wrap);
+            DOM.chatScroll.scrollTop = DOM.chatScroll.scrollHeight;
+            lucide.createIcons();
+
+            if (saveToDb) {
+                await dbOp("chat", "add", { role, content, isHtml, timestamp: Date.now() });
+            }
+            
+            return wrap.dataset.msgId; 
+        };
+
+        const CACHE_ICON_SVG = `<svg class="ss-opt-icon  w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>`;
+        const CACHE_ICON_PH = `<span class="ss-opt-icon-ph  w-5" aria-hidden="true"></span>`;
+
+        const updateMessage = (id, text, tokens, tps, isFinal = false) => {
+            const el = document.getElementById(id);
+            const meta = document.getElementById(`${id}-meta`);
+            if (isFinal || (text && text.length > 0)) {
+                document.getElementById(`${id}-pipe`)?.remove();
+            }
+            if (el) {
+                el.classList.remove('animate-pulse-slow', 'text-zinc-500');
+                if (isFinal) {
+                    el.innerHTML = sanitizeChatHtml(marked.parse(text));
+                } else {
+                    el.innerHTML = sanitizeChatHtml(text.replace(/\n/g, '<br>'));
+                }
+            }
+            if (meta && tokens) {
+                meta.textContent = `${tokens} tok · ~${tps} t/s`;
+            }
+            DOM.chatScroll.scrollTop = DOM.chatScroll.scrollHeight;
+        };
+
+        const openDb = () => new Promise((resolve, reject) => {
+            const req = indexedDB.open(DB_NAME, DB_VER);
+            req.onerror = () => reject(req.error);
+            req.onsuccess = () => resolve(req.result);
+            req.onupgradeneeded = (e) => {
+                const db = e.target.result;
+                if (!db.objectStoreNames.contains("sources")) db.createObjectStore("sources", { keyPath: "id", autoIncrement: true });
+                if (!db.objectStoreNames.contains("chunks")) {
+                    const st = db.createObjectStore("chunks", { keyPath: "id", autoIncrement: true });
+                    st.createIndex("sourceId", "sourceId", { unique: false });
+                }
+                if (!db.objectStoreNames.contains("chat")) {
+                    db.createObjectStore("chat", { keyPath: "id", autoIncrement: true });
+                }
+            };
+        });
+
+        const dbOp = async (store, op, data = null) => {
+            const db = await openDb();
+            return new Promise((resolve, reject) => {
+                const tx = db.transaction(store, op === 'getAll' ? 'readonly' : 'readwrite');
+                const os = tx.objectStore(store);
+                let req;
+                if (op === 'getAll') req = os.getAll();
+                else if (op === 'add') req = os.add(data);
+                else if (op === 'clear') req = os.clear();
+                else if (op === 'delete') req = os.delete(data);
+                
+                req.onerror = () => reject(req.error);
+                req.onsuccess = () => resolve(req.result);
+            });
+        };
+
+        const dbDeleteSource = async (sourceId) => {
+            const db = await openDb();
+            return new Promise((resolve, reject) => {
+                const tx = db.transaction(["sources", "chunks"], "readwrite");
+                tx.objectStore("sources").delete(sourceId);
+                const cur = tx.objectStore("chunks").index("sourceId").openCursor(IDBKeyRange.only(sourceId));
+                cur.onsuccess = (e) => {
+                    const c = e.target.result;
+                    if (c) { c.delete(); c.continue(); }
+                };
+                tx.oncomplete = () => resolve();
+                tx.onerror = () => reject(tx.error);
+            });
+        };
+
+        const checkCacheStatus = async () => {
+            State.cachedModels.clear();
+            State.cachedEmb.clear();
+            if (!('caches' in window)) {
+                renderCacheControls();
+                return;
+            }
+            try {
+                const cache = await caches.open('transformers-cache');
+                const keys = await cache.keys();
+                
+                Object.entries(GEN_MODELS).forEach(([key, spec]) => {
+                    const isCached = keys.some(req => req.url.includes(spec.id));
+                    if (isCached) State.cachedModels.add(key);
+                });
+
+                Object.entries(EMB_MODELS).forEach(([key, spec]) => {
+                    const isCached = keys.some(req => req.url.includes(spec.id));
+                    if (isCached) State.cachedEmb.add(key);
+                });
+            } catch (e) {
+                console.warn("Error reading cache:", e);
+            }
+            renderCacheControls();
+        };
+
+        const deleteCacheEntriesForRepoId = async (repoId) => {
+            if (!('caches' in window) || !repoId) return 0;
+            const cache = await caches.open('transformers-cache');
+            const allKeys = await cache.keys();
+            let removed = 0;
+            for (const req of allKeys) {
+                if (req.url.includes(repoId)) {
+                    await cache.delete(req);
+                    removed++;
+                }
+            }
+            return removed;
+        };
+
+        const showSetupModal = () => {
+            DOM.setupModal.classList.remove('hidden', 'opacity-0', 'pointer-events-none');
+            updateSetupEstimate();
+        };
+
+        const disposeLoadedModels = () => {
+            State.embedder = null;
+            State.generator = null;
+            State.isReady = false;
+        };
+
+        const getCachedModelKeys = () => ({
+            genCached: Object.keys(GEN_MODELS).filter((k) => State.cachedModels.has(k)),
+            embCached: Object.keys(EMB_MODELS).filter((k) => State.cachedEmb.has(k)),
+        });
+
+        const buildClearMemoryConfirmMessage = () => {
+            const { genCached, embCached } = getCachedModelKeys();
+            let msg = 'Model cache\nDeleting frees disk space. If you remove the active model, you will need to download it again.\n\n';
+            if (!('caches' in window) || (genCached.length === 0 && embCached.length === 0)) {
+                msg += 'No cached model files yet (or cache API unavailable).\n\n';
+            }
+            msg += 'Clear loaded documents and vectors from browser memory?';
+            return msg;
+        };
+
+        const renderCacheControls = () => {
+            if (!DOM.cacheModelsPanel) return;
+            const { genCached, embCached } = getCachedModelKeys();
+
+            const row = (kind, key, label, active) => `
+                <div class="flex items-center justify-between gap-2 py-1 border-b border-zinc-800/60 last:border-0">
+                    <span class="text-zinc-400 truncate min-w-0" title="${escHtml(label)}">${escHtml(label)}${active ? ' · active' : ''}</span>
+                    <button type="button" class="shrink-0 px-2 py-0.5 rounded-md border border-zinc-600 text-[10px] text-zinc-400 hover:bg-red-950/40 hover:border-red-800 hover:text-red-300 transition-colors"
+                        data-cache-del="${kind}" data-cache-key="${key}">Delete</button>
+                </div>`;
+
+            let html = '';
+            if (genCached.length) {
+                html += `<div class="text-[10px] text-zinc-500 uppercase tracking-wide mb-1">LLM</div>`;
+                genCached.forEach((key) => {
+                    const spec = GEN_MODELS[key];
+                    html += row('gen', key, spec.label, State.isReady && key === State.generatorKey);
+                });
+            }
+            if (embCached.length) {
+                html += `<div class="text-[10px] text-zinc-500 uppercase tracking-wide mt-2 mb-1">Embeddings</div>`;
+                embCached.forEach((key) => {
+                    const spec = EMB_MODELS[key];
+                    html += row('emb', key, spec.label, State.isReady && key === State.embedderKey);
+                });
+            }
+            if (!html) {
+                html = '<p class="text-[10px] text-zinc-600 py-1">No cached model files yet (or cache API unavailable).</p>';
+            }
+            DOM.cacheModelsPanel.innerHTML = html;
+            lucide.createIcons();
+        };
+
+        const estimateGenTpsRange = (spec, device) => {
+            const B = spec.paramBillions ?? 1;
+            const hc = (typeof navigator !== 'undefined' && navigator.hardwareConcurrency) || 4;
+            const loadHint = 0.92 + 0.08 * Math.min(1, Math.max(0, hc) / 8);
+            if (device === 'webgpu') {
+                const mid = 32 * Math.exp(-0.4 * B) + 3.5;
+                const lo = Math.max(2, Math.round(mid * 0.42 * loadHint));
+                const hi = Math.max(lo + 2, Math.round(mid * 1.45 * loadHint));
+                return { lo, hi };
+            }
+            const mid = 4.2 * Math.exp(-0.52 * B) + 0.12;
+            const lo = Math.max(0.2, Number((mid * 0.38 * loadHint).toFixed(1)));
+            const hi = Math.max(lo * 1.15, Number((mid * 1.55 * loadHint).toFixed(1)));
+            if (hi < 1.2) {
+                return { lo, hi: Math.max(hi, Number((lo * 1.4).toFixed(1))) };
+            }
+            return { lo, hi: Number(hi.toFixed(1)) };
+        };
+
+        const buildGenPlain = (key, spec) => {
+            const { lo, hi } = estimateGenTpsRange(spec, State.device || 'wasm');
+            const devHint = (State.device || 'wasm') === 'webgpu' ? 'WebGPU' : 'WASM';
+            return `${spec.label} · ${spec.paramsShort} · ~${spec.approxSizeMb} MB · ~${lo}–${hi} tok/s (${devHint})`;
+        };
+        const buildGenHtml = (key, spec) => {
+            const icon = State.cachedModels.has(key) ? CACHE_ICON_SVG : CACHE_ICON_PH;
+            return `<span class="flex items-start gap-2 text-left">${icon}<span class="min-w-0 leading-snug">${escHtml(buildGenPlain(key, spec))}</span></span>`;
+        };
+        const buildEmbPlain = (key, spec) => {
+            return `${spec.label} · ${spec.paramsShort} · ~${spec.approxSizeMb} MB`;
+        };
+        const buildEmbHtml = (key, spec) => {
+            const icon = State.cachedEmb.has(key) ? CACHE_ICON_SVG : CACHE_ICON_PH;
+            return `<span class="flex items-start gap-2 text-left">${icon}<span class="min-w-0 leading-snug">${escHtml(buildEmbPlain(key, spec))}</span></span>`;
+        };
+
+        const destroySlimSelects = () => {
+            State.slimSelects.forEach((s) => { try { s.destroy(); } catch (e) {} });
+            State.slimSelects = [];
+        };
+
+        const initSlimSelects = () => {
+            const SS = window.SlimSelect;
+            const genData = Object.entries(GEN_MODELS).map(([key, spec]) => ({
+                text: buildGenPlain(key, spec),
+                value: key,
+                html: buildGenHtml(key, spec),
+                selected: key === State.generatorKey
+            }));
+            const embData = Object.entries(EMB_MODELS).map(([key, spec]) => ({
+                text: buildEmbPlain(key, spec),
+                value: key,
+                html: buildEmbHtml(key, spec),
+                selected: key === State.embedderKey
+            }));
+
+            const fallbackNative = () => {
+                Object.entries(GEN_MODELS).forEach(([key, spec]) => {
+                    DOM.setupModelSelect.add(new Option(buildGenPlain(key, spec), key, false, key === State.generatorKey));
+                    DOM.genSelect.add(new Option(buildGenPlain(key, spec), key, false, key === State.generatorKey));
+                });
+                Object.entries(EMB_MODELS).forEach(([key, spec]) => {
+                    DOM.setupEmbSelect.add(new Option(buildEmbPlain(key, spec), key, false, key === State.embedderKey));
+                    DOM.embSelect.add(new Option(buildEmbPlain(key, spec), key, false, key === State.embedderKey));
+                });
+            };
+
+            if (!SS) {
+                fallbackNative();
+                return;
+            }
+
+            [
+                ['#setup-model-select', genData],
+                ['#setup-emb-select', embData],
+                ['#select-gen-model', genData],
+                ['#select-emb-model', embData]
+            ].forEach(([sel, data]) => {
+                const inst = new SS({
+                    select: sel,
+                    data,
+                    settings: {
+                        contentLocation: document.body,
+                        contentPosition: 'fixed',
+                        showSearch: true,
+                        searchPlaceholder: 'Filter…'
+                    },
+                    events: {
+                        afterChange: (newVal) => {
+                            const el = document.querySelector(sel);
+                            if (!el || !newVal?.length) return;
+                            const v = newVal[0].value ?? newVal[0].text;
+                            if (v != null) el.value = String(v);
+                            el.dispatchEvent(new Event('change', { bubbles: true }));
+                        }
+                    }
+                });
+                State.slimSelects.push(inst);
+            });
+        };
+
+        const updateModelDropdowns = () => {
+            destroySlimSelects();
+            [DOM.setupModelSelect, DOM.setupEmbSelect, DOM.genSelect, DOM.embSelect].forEach((el) => {
+                if (el) el.innerHTML = '';
+            });
+            initSlimSelects();
+            updateSetupEstimate();
+            renderCacheControls();
+        };
+
+        const checkDevice = async () => {
+            let hasGpu = false;
+            if (navigator.gpu) {
+                try {
+                    const adapter = await navigator.gpu.requestAdapter();
+                    if (adapter) hasGpu = true;
+                } catch(e) {}
+            }
+            State.device = hasGpu ? "webgpu" : "wasm";
+            DOM.deviceBadge.textContent = State.device.toUpperCase();
+            
+            if (hasGpu) {
+                DOM.setupGpu.textContent = "WebGPU supported";
+                DOM.setupGpu.className = "font-medium text-emerald-400";
+            } else {
+                DOM.setupGpu.textContent = "CPU only (WASM)";
+                DOM.setupGpu.className = "font-medium text-amber-500";
+                const currentSaved = localStorage.getItem(LS_MODEL_KEY) || localStorage.getItem(LS_MODEL_KEY_LEGACY);
+                if (!currentSaved || !GEN_MODELS[currentSaved]) {
+                    State.generatorKey = "lfm2_350m";
+                    DOM.setupModelSelect.value = State.generatorKey;
+                } else if (GEN_MODELS[currentSaved].vl) {
+                    State.generatorKey = "lfm2_350m";
+                    DOM.setupModelSelect.value = State.generatorKey;
+                    localStorage.setItem(LS_MODEL_KEY, State.generatorKey);
+                }
+            }
+            updateModelDropdowns();
+        };
+
+        const updateSetupEstimate = () => {
+            const val = DOM.setupModelSelect.value;
+            const embVal = DOM.setupEmbSelect.value;
+            const isCachedLLM = State.cachedModels.has(val);
+            const isCachedEmb = State.cachedEmb.has(embVal);
+            
+            if (isCachedLLM && isCachedEmb) {
+                DOM.setupSize.textContent = `Models already downloaded`;
+                DOM.setupSize.className = "text-emerald-400 font-medium";
+                document.getElementById('btn-start-text').textContent = "Launch";
+            } else {
+                let size = 0;
+                if (!isCachedLLM) size += GEN_MODELS[val]?.approxSizeMb || 0;
+                if (!isCachedEmb) size += EMB_MODELS[embVal]?.approxSizeMb || 0;
+                
+                DOM.setupSize.textContent = `~${size} MB (will be saved to cache)`;
+                DOM.setupSize.className = "text-zinc-300 font-medium";
+                document.getElementById('btn-start-text').textContent = "Start download";
+            }
+        };
+
+        const initModels = async (modelKey, embKey) => {
+            const myGen = ++State.modelLoadGeneration;
+            State.modelLoadAbortController?.abort();
+            State.modelLoadAbortController = new AbortController();
+            const ac = State.modelLoadAbortController;
+
+            env.fetch = (input, init) => {
+                const base = init && typeof init === 'object' ? { ...init } : {};
+                base.signal = mergeFetchAbortSignals(base.signal, ac.signal);
+                return ENV_FETCH_BASE(input, base);
+            };
+
+            State.isLoading = true;
+            State.generatorKey = modelKey;
+            State.embedderKey = embKey;
+            localStorage.setItem(LS_MODEL_KEY, modelKey);
+            localStorage.setItem(LS_EMB_KEY, embKey);
+
+            DOM.setupModal.classList.add('opacity-0', 'pointer-events-none');
+            setTimeout(() => DOM.setupModal.classList.add('hidden'), 300);
+            setUiGate(true);
+            if (DOM.btnCancelModelLoad) DOM.btnCancelModelLoad.classList.remove('hidden');
+
+            const finishFetchPatchIfCurrent = () => {
+                if (myGen !== State.modelLoadGeneration) return;
+                env.fetch = ENV_FETCH_BASE;
+                State.modelLoadAbortController = null;
+                if (DOM.btnCancelModelLoad) DOM.btnCancelModelLoad.classList.add('hidden');
+            };
+
+            try {
+                setStatus('Preparing AI...', 'work');
+                dlManager.start();
+
+                State.embedder = await pipeline("feature-extraction", EMB_MODELS[embKey].id, {
+                    dtype: "fp32", device: State.device,
+                    progress_callback: (e) => dlManager.update(e)
+                });
+                if (myGen !== State.modelLoadGeneration) return;
+
+                const spec = GEN_MODELS[modelKey];
+                if (spec.vl) {
+                    if (State.device !== "webgpu") {
+                        throw new Error(
+                            "This vision-language model requires WebGPU. Enable GPU acceleration or pick a text-only model (e.g. LFM2 350M).",
+                        );
+                    }
+                    const pc = (e) => dlManager.update(e);
+                    const loadOpts = {
+                        device: "webgpu",
+                        dtype: spec.vlDtype,
+                        progress_callback: pc,
+                    };
+                    const [processor, model] = await Promise.all([
+                        AutoProcessor.from_pretrained(spec.id, loadOpts),
+                        AutoModelForImageTextToText.from_pretrained(spec.id, loadOpts),
+                    ]);
+                    State.generator = { __kind: "vl", model, processor };
+                } else {
+                    const dtypeEntry = spec.dtypes.find((d) => d.device === State.device) || spec.dtypes[0];
+                    State.generator = await pipeline("text-generation", spec.id, {
+                        dtype: dtypeEntry.dtype,
+                        device: dtypeEntry.device,
+                        progress_callback: (e) => dlManager.update(e),
+                    });
+                }
+                if (myGen !== State.modelLoadGeneration) return;
+
+                DOM.genSelect.value = modelKey;
+                DOM.embSelect.value = embKey;
+
+                State.cachedModels.add(modelKey);
+                State.cachedEmb.add(embKey);
+                updateModelDropdowns();
+
+                dlManager.finish();
+                State.isReady = true;
+                setStatus('Ready', 'ready');
+
+            } catch (e) {
+                if (myGen !== State.modelLoadGeneration) return;
+
+                disposeLoadedModels();
+                dlManager.dismiss();
+
+                const aborted = e?.name === 'AbortError' || ac.signal.aborted;
+                if (aborted) {
+                    console.info('Model load cancelled');
+                    setStatus('Download cancelled', 'err');
+                    showSetupModal();
+                } else {
+                    console.error(e);
+                    setStatus('Initialization error', 'err');
+
+                    let errDetails = e.message;
+                    if (errDetails.includes('401') || errDetails.includes('404')) {
+                        errDetails += "\n*(The model may be private or lack public ONNX weights. Try selecting a different one.)*";
+                    }
+
+                    await appendMessage('assistant', `**Load error:** \n\`${errDetails}\`\n\nPlease choose different models in the panel on the right.`, false);
+                }
+            } finally {
+                if (myGen === State.modelLoadGeneration) {
+                    State.isLoading = false;
+                    setUiGate(false);
+                }
+                finishFetchPatchIfCurrent();
+            }
+        };
+
+        const processFiles = async (files) => {
+            if (!files.length || !State.isReady) return;
+            State.isLoading = true;
+            setUiGate(true);
+            let hasErrors = false;
+
+            dlManager.cancelScheduledHide();
+
+            const DOC_READ_SHARE = 0.12;
+            const setDocProg = (overall01, statsLine, etaSecondsOrNull) => {
+                const raw = Number(overall01);
+                const pct = Math.min(100, Math.max(0, Math.round(Number.isFinite(raw) ? raw * 100 : 0)));
+                DOM.progBar.style.width = `${pct}%`;
+                DOM.progPct.textContent = `${pct}%`;
+                DOM.progStats.textContent = statsLine;
+                if (DOM.progStatsMobile) DOM.progStatsMobile.textContent = statsLine;
+                if (etaSecondsOrNull === null || etaSecondsOrNull === undefined
+                    || !Number.isFinite(etaSecondsOrNull) || etaSecondsOrNull < 0 || etaSecondsOrNull > 86400) {
+                    DOM.progEta.textContent = 'Time left: --:--';
+                } else {
+                    DOM.progEta.textContent = `Time left: ${progressFmtEtaSec(etaSecondsOrNull)}`;
+                }
+            };
+
+            for (const file of files) {
+                setStatus(`Analyzing ${file.name}...`, 'work');
+                DOM.progWrap.classList.remove('hidden');
+                const safeName = escHtml(file.name);
+                DOM.progLabel.innerHTML = `<i data-lucide="loader" class="w-3 h-3 animate-spin text-blue-400 shrink-0"></i><span class="truncate">Reading: ${safeName}</span>`;
+                lucide.createIcons();
+                setDocProg(0, 'Preparing…', null);
+
+                try {
+                    let text = "";
+                    if (file.name.toLowerCase().endsWith(".pdf")) {
+                        const pdfjsLib = await import("https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.4.168/pdf.min.mjs");
+                        pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.4.168/pdf.worker.min.mjs";
+                        setDocProg(0, 'Reading file into memory…', null);
+                        const buf = await file.arrayBuffer();
+                        setDocProg(0, 'Parsing PDF…', null);
+                        const pdf = await pdfjsLib.getDocument({ data: buf }).promise;
+                        const pdfReadT0 = performance.now();
+                        for (let p = 1; p <= pdf.numPages; p++) {
+                            const page = await pdf.getPage(p);
+                            const content = await page.getTextContent();
+                            text += content.items.map(it => "str" in it ? it.str : "").join(" ") + "\n\n";
+                            const readFrac = p / pdf.numPages;
+                            const overall = readFrac * DOC_READ_SHARE;
+                            const elapsed = (performance.now() - pdfReadT0) / 1000;
+                            let eta = null;
+                            if (elapsed > 0.3 && p > 0 && p < pdf.numPages) {
+                                const pagesPerSec = p / elapsed;
+                                const sec = (pdf.numPages - p) / pagesPerSec;
+                                eta = Number.isFinite(sec) && sec < 86400 ? sec : null;
+                            } else if (p >= pdf.numPages) eta = 0;
+                            setDocProg(overall, `Page ${p} / ${pdf.numPages}`, eta);
+                        }
+                    } else {
+                        text = await new Promise((res, rej) => {
+                            const r = new FileReader();
+                            r.onload = () => res(r.result);
+                            r.onerror = () => rej(r.error);
+                            r.readAsText(file);
+                        });
+                        setDocProg(DOC_READ_SHARE, 'Text read', null);
+                    }
+
+                    if (text.trim().length < 40) throw new Error("Too little text.");
+
+                    const parts = [];
+                    const size = 600, overlap = 150;
+                    for (let i = 0; i < text.length; i += (size - overlap)) {
+                        parts.push(text.slice(i, i + size).trim());
+                    }
+                    const validParts = parts.filter(p => p.length > 20);
+
+                    const sourceId = await dbOp("sources", "add", {
+                        name: file.name, charLength: text.length, chunkCount: validParts.length, addedAt: Date.now()
+                    });
+
+                    DOM.progLabel.innerHTML = `<i data-lucide="loader" class="w-3 h-3 animate-spin text-blue-400 shrink-0"></i><span class="truncate">Embedding: ${safeName}</span>`;
+                    lucide.createIcons();
+
+                    const batchSize = 4;
+                    const embedT0 = performance.now();
+                    for (let i = 0; i < validParts.length; i += batchSize) {
+                        const batch = validParts.slice(i, i + batchSize);
+                        const vectors = await State.embedder(batch, { pooling: "mean", normalize: true });
+                        const vecList = vectors.tolist();
+
+                        for (let j = 0; j < batch.length; j++) {
+                            await dbOp("chunks", "add", { sourceId, text: batch[j], embedding: vecList[j] });
+                        }
+
+                        const done = Math.min(i + batch.length, validParts.length);
+                        const embedRatio = validParts.length ? done / validParts.length : 1;
+                        const overall = DOC_READ_SHARE + (1 - DOC_READ_SHARE) * embedRatio;
+                        const elapsed = (performance.now() - embedT0) / 1000;
+                        let eta = null;
+                        if (done >= validParts.length) eta = 0;
+                        else if (elapsed > 0.35 && done > 0) {
+                            const chunksPerSec = done / elapsed;
+                            const sec = (validParts.length - done) / chunksPerSec;
+                            eta = Number.isFinite(sec) && sec < 86400 ? sec : null;
+                        }
+                        setDocProg(overall, `${done} / ${validParts.length} chunks`, eta);
+                        if (i % (batchSize * 6) === 0 && i > 0) await new Promise(requestAnimationFrame);
+                    }
+                    setDocProg(1, validParts.length ? `${validParts.length} / ${validParts.length} chunks` : 'No chunks to index', 0);
+                } catch (e) {
+                    console.error(e);
+                    hasErrors = true;
+                    await appendMessage('assistant', `⚠️ Failed to process **${file.name}**: ${e.message}`, false);
+                }
+            }
+
+            await renderSources();
+            dlManager.cancelScheduledHide();
+            DOM.progWrap.classList.add('hidden');
+            setStatus(hasErrors ? 'Ready (with errors)' : 'Documents loaded', hasErrors ? 'err' : 'ready');
+            State.isLoading = false;
+            setUiGate(false);
+            if (!hasErrors) await appendMessage('assistant', 'Files have been analyzed and added to the index. Ask me anything!', false);
+        };
+
+        const cosSim = (a, b) => {
+            let d = 0, na = 0, nb = 0;
+            for (let i = 0; i < a.length; i++) { d += a[i]*b[i]; na += a[i]*a[i]; nb += b[i]*b[i]; }
+            return d / (Math.sqrt(na) * Math.sqrt(nb));
+        };
+
+        const formatChunkCount = (n) => `${n} chunk${n === 1 ? '' : 's'}`;
+
+        const handleQuery = async (query) => {
+            const chunks = await dbOp("chunks", "getAll");
+            const useRag = chunks.length > 0;
+
+            State.isLoading = true;
+            State.stopGenerationRequested = false;
+            State.genAbortController = new AbortController();
+            setUiGate(true, { allowStopButton: true });
+            setSendButtonGenerationMode(true);
+            setStatus('Preparing response…', 'work');
+
+            let asstMsgId = null;
+            let generatedText = "";
+            let tokens = 0;
+            let genStartTime = 0;
+
+            try {
+                asstMsgId = await appendMessage('assistant', '', false, false, { pipeline: useRag });
+
+                let messages;
+                if (useRag) {
+                    setStatus('Searching your documents…', 'work');
+                    const [queryVec] = (await State.embedder([query], { pooling: "mean", normalize: true })).tolist();
+                    const scored = chunks.map(c => ({...c, score: cosSim(queryVec, c.embedding)}))
+                                         .sort((a,b) => b.score - a.score)
+                                         .slice(0, 5);
+
+                    const contextLines = scored.filter(c => c.score > 0.15).map(c => c.text);
+                    const nCtx = contextLines.length;
+
+                    const p1 = document.getElementById(`${asstMsgId}-p1`);
+                    if (p1) {
+                        const ok = nCtx > 0;
+                        const lead = ok
+                            ? `Semantic match: ${formatChunkCount(nCtx)} from your files`
+                            : 'Weak matches in your files — answering without document grounding';
+                        p1.className = 'inline-flex max-w-full items-baseline gap-1.5 rounded-lg px-2.5 py-1.5 text-[11px] leading-tight ' + (ok
+                            ? 'bg-emerald-950/35 text-emerald-200/90 border border-emerald-800/40'
+                            : 'bg-amber-950/30 text-amber-100/85 border border-amber-800/35');
+                        p1.textContent = lead;
+                    }
+
+                    const contextStr = contextLines.length ? contextLines.map((t,i) => `[${i+1}] ${t}`).join("\n\n") : "There is no information in the documents for this query.";
+                    messages = [
+                        { role: "system", content: "You are a helpful assistant. Answer in English based only on the provided CONTEXT. If the information is not in the context, say so clearly." },
+                        { role: "user", content: `CONTEXT:\n${contextStr}\n\nQUESTION:\n${query}` }
+                    ];
+                } else {
+                    messages = [
+                        { role: "system", content: "You are a helpful assistant. Answer in English, clearly and to the point. If you are unsure about facts or lack context, say so. Do not invent specific citations, laws, or exact dates unless they appeared in the user's message." },
+                        { role: "user", content: query }
+                    ];
+                }
+
+                setStatus('Local model generating response…', 'work');
+
+                generatedText = "";
+                tokens = 0;
+                genStartTime = performance.now();
+                const t0 = genStartTime;
+                let lastUi = 0;
+
+                const genSpec = GEN_MODELS[State.generatorKey];
+                const vlBundle = isVlGeneratorBundle(State.generator) ? State.generator : null;
+                const useVl = Boolean(genSpec.vl && vlBundle);
+
+                const tok = useVl ? vlBundle.processor.tokenizer : State.generator.tokenizer;
+                let genInput = messages;
+                if (!useVl && tok && typeof tok.apply_chat_template === "function") {
+                    try {
+                        genInput = tok.apply_chat_template(messages, {
+                            tokenize: false,
+                            add_generation_prompt: true,
+                        });
+                    } catch (err) {
+                        console.warn("apply_chat_template:", err);
+                    }
+                }
+
+                const streamer = new TextStreamer(tok, {
+                    skip_prompt: true,
+                    skip_special_tokens: true,
+                    callback_function: (tokenStr) => {
+                        if (State.stopGenerationRequested) {
+                            throw new DOMException("Generation stopped", "AbortError");
+                        }
+                        tokens++;
+                        generatedText += tokenStr;
+                        const elapsed = (performance.now() - t0) / 1000;
+                        const tps = elapsed > 0 ? Math.round(tokens / elapsed) : 0;
+                        const now = performance.now();
+                        if (now - lastUi >= 48) {
+                            lastUi = now;
+                            requestAnimationFrame(() => {
+                                updateMessage(asstMsgId, generatedText, tokens, tps, false);
+                            });
+                        }
+                    },
+                });
+
+                const genOpts = { max_new_tokens: 512, do_sample: false, streamer };
+                if (State.genAbortController?.signal) {
+                    try {
+                        genOpts.signal = State.genAbortController.signal;
+                    } catch (_) {}
+                }
+
+                if (useVl) {
+                    const inputs = await prepareVlModelInputs(genSpec, vlBundle.processor, messages);
+                    await vlBundle.model.generate({ ...inputs, ...genOpts });
+                } else {
+                    await State.generator(genInput, genOpts);
+                }
+
+                const elapsedFinal = (performance.now() - t0) / 1000;
+                const tpsFinal = elapsedFinal > 0 ? Math.round(tokens / elapsedFinal) : 0;
+                updateMessage(asstMsgId, generatedText, tokens, tpsFinal, true);
+                
+                await dbOp("chat", "add", { role: "assistant", content: generatedText, isHtml: false, timestamp: Date.now() });
+
+                setStatus('Ready', 'ready');
+            } catch (e) {
+                const aborted = e?.name === 'AbortError' || State.stopGenerationRequested;
+                if (aborted && asstMsgId) {
+                    const elapsedAbort = genStartTime ? (performance.now() - genStartTime) / 1000 : 1;
+                    const tpsAbort = elapsedAbort > 0 ? Math.round(tokens / elapsedAbort) : 0;
+                    updateMessage(asstMsgId, generatedText, tokens, tpsAbort, true);
+                    const meta = document.getElementById(`${asstMsgId}-meta`);
+                    if (meta) meta.textContent += ' · stopped';
+                    if (generatedText.trim()) {
+                        await dbOp("chat", "add", { role: "assistant", content: generatedText, isHtml: false, timestamp: Date.now() });
+                    }
+                    setStatus('Stopped', 'ready');
+                    return;
+                }
+                console.error(e);
+                await appendMessage('assistant', '❌ Generation error: ' + e.message, false);
+                setStatus('Error', 'err');
+            } finally {
+                State.isLoading = false;
+                State.genAbortController = null;
+                State.stopGenerationRequested = false;
+                setSendButtonGenerationMode(false);
+                setUiGate(false);
+            }
+        };
+
+        const renderSources = async () => {
+            const sources = await dbOp("sources", "getAll");
+            DOM.sourcesList.innerHTML = '';
+            
+            if (!sources.length) {
+                DOM.sourcesList.innerHTML = `
+                    <div class="text-center p-6 border border-dashed border-zinc-700/50 rounded-xl bg-zinc-900/30 text-zinc-500 text-xs">
+                        <i data-lucide="inbox" class="w-8 h-8 mx-auto mb-2 opacity-40"></i>
+                        No documents yet.<br>Add files.
+                    </div>`;
+                lucide.createIcons();
+                return;
+            }
+
+            sources.forEach(s => {
+                const el = document.createElement('div');
+                el.className = "group flex items-center gap-3 p-3 rounded-xl bg-zinc-800/40 hover:bg-zinc-800 border border-zinc-700/50 transition-colors";
+                el.innerHTML = `
+                    <div class="w-8 h-8 rounded-lg bg-blue-500/10 text-blue-400 flex items-center justify-center shrink-0">
+                        <i data-lucide="file-text" class="w-4 h-4"></i>
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <div class="text-sm font-medium text-zinc-200 truncate" title="${s.name}">${s.name}</div>
+                        <div class="text-[10px] text-zinc-500">${s.chunkCount} chunk${s.chunkCount === 1 ? '' : 's'} · ${(s.charLength/1024).toFixed(1)} KB</div>
+                    </div>
+                    <button class="btn-del-src opacity-0 group-hover:opacity-100 p-1.5 text-zinc-500 hover:text-red-400 hover:bg-red-500/10 rounded-md transition-all shrink-0" data-id="${s.id}" title="Delete">
+                        <i data-lucide="trash" class="w-4 h-4"></i>
+                    </button>
+                `;
+                DOM.sourcesList.appendChild(el);
+            });
+            lucide.createIcons();
+            
+            document.querySelectorAll('.btn-del-src').forEach(btn => {
+                btn.addEventListener('click', async (e) => {
+                    await dbDeleteSource(Number(e.currentTarget.dataset.id));
+                    renderSources();
+                });
+            });
+        };
+
+        const toggleSidebar = (force) => {
+            closeAllSlimSelects();
+            const isOpen = !DOM.sidebar.classList.contains('-translate-x-full');
+            const willOpen = force !== undefined ? force : !isOpen;
+            if (willOpen) {
+                DOM.sidebar.classList.remove('-translate-x-full');
+                document.getElementById('sidebar-backdrop').classList.remove('hidden');
+                setTimeout(() => document.getElementById('sidebar-backdrop').classList.remove('opacity-0'), 10);
+            } else {
+                DOM.sidebar.classList.add('-translate-x-full');
+                document.getElementById('sidebar-backdrop').classList.add('opacity-0');
+                setTimeout(() => document.getElementById('sidebar-backdrop').classList.add('hidden'), 300);
+            }
+        };
+
+        document.getElementById('btn-open-sidebar').addEventListener('click', () => toggleSidebar());
+        document.getElementById('btn-close-sidebar').addEventListener('click', () => toggleSidebar(false));
+        document.getElementById('sidebar-backdrop').addEventListener('click', () => toggleSidebar(false));
+
+        DOM.chatInput.addEventListener('input', function() {
+            this.style.height = 'auto';
+            this.style.height = (this.scrollHeight) + 'px';
+            if (DOM.btnSend.dataset.mode === 'stop') return;
+            if(this.value.trim().length > 0) DOM.btnSend.classList.add('bg-blue-500');
+            else DOM.btnSend.classList.remove('bg-blue-500');
+        });
+
+        DOM.btnSend.addEventListener('click', (e) => {
+            if (DOM.btnSend.dataset.mode === 'stop') {
+                e.preventDefault();
+                e.stopPropagation();
+                State.stopGenerationRequested = true;
+                try { State.genAbortController?.abort(); } catch (_) {}
+            }
+        });
+
+        document.getElementById('chat-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const val = DOM.chatInput.value.trim();
+            if (!val || State.isLoading || !State.isReady) return;
+            DOM.chatInput.value = '';
+            DOM.chatInput.style.height = 'auto';
+            await appendMessage('user', val);
+            handleQuery(val);
+        });
+
+        DOM.chatInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                document.getElementById('chat-form').dispatchEvent(new Event('submit'));
+            }
+        });
+
+        DOM.fileInput.addEventListener('change', (e) => {
+            if (e.target.files?.length) processFiles(Array.from(e.target.files));
+            e.target.value = '';
+        });
+
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eName => document.body.addEventListener(eName, e => { e.preventDefault(); e.stopPropagation(); }, false));
+        document.body.addEventListener('dragenter', () => { if(!State.isLoading) document.body.classList.add('drag-active'); });
+        document.getElementById('drop-overlay').addEventListener('dragleave', () => document.body.classList.remove('drag-active'));
+        document.getElementById('drop-overlay').addEventListener('drop', (e) => {
+            document.body.classList.remove('drag-active');
+            if (e.dataTransfer.files?.length && !State.isLoading) processFiles(Array.from(e.dataTransfer.files));
+        });
+
+        document.getElementById('btn-clear-sources').addEventListener('click', async () => {
+            if (!(await showAppConfirm(buildClearMemoryConfirmMessage(), 'Clear memory', { confirmLabel: 'Clear memory' }))) return;
+            await dbOp("sources", "clear");
+            await dbOp("chunks", "clear");
+            renderSources();
+            await appendMessage('assistant', 'Document index cleared successfully.', false);
+        });
+
+        document.getElementById('btn-clear-chat').addEventListener('click', async (ev) => {
+            ev.preventDefault();
+            ev.stopPropagation();
+            if (!(await showAppConfirm('Clear all chat history?'))) return;
+            try {
+                await dbOp("chat", "clear");
+                DOM.chatScroll.innerHTML = '';
+            } catch (err) {
+                console.error(err);
+                await showAppAlert('Failed to clear history: ' + (err?.message || String(err)), 'Error');
+            }
+        });
+
+        DOM.btnCancelModelLoad?.addEventListener('click', () => {
+            State.modelLoadAbortController?.abort();
+        });
+
+        DOM.cacheModelsPanel?.addEventListener('click', async (e) => {
+            const btn = e.target.closest('[data-cache-del]');
+            if (!btn) return;
+            const kind = btn.getAttribute('data-cache-del');
+            const key = btn.getAttribute('data-cache-key');
+            if (!kind || !key) return;
+
+            const spec = kind === 'gen' ? GEN_MODELS[key] : EMB_MODELS[key];
+            if (!spec) return;
+
+            if (!(await showAppConfirm(`Remove from browser cache: "${spec.label}"?`))) return;
+
+            try {
+                await deleteCacheEntriesForRepoId(spec.id);
+                if (kind === 'gen') State.cachedModels.delete(key);
+                else State.cachedEmb.delete(key);
+
+                const touchesActive =
+                    State.isReady &&
+                    ((kind === 'gen' && State.generatorKey === key) ||
+                        (kind === 'emb' && State.embedderKey === key));
+                if (touchesActive) {
+                    disposeLoadedModels();
+                    State.modelLoadAbortController?.abort();
+                    setUiGate(false);
+                    setStatus('Model removed from cache', 'err');
+                    showSetupModal();
+                }
+
+                updateModelDropdowns();
+            } catch (err) {
+                console.error(err);
+                await showAppAlert('Failed to remove cache: ' + (err?.message || String(err)), 'Error');
+            }
+        });
+
+        DOM.setupModelSelect.addEventListener('change', updateSetupEstimate);
+        DOM.setupEmbSelect.addEventListener('change', updateSetupEstimate);
+        DOM.btnStartDownload.addEventListener('click', () => initModels(DOM.setupModelSelect.value, DOM.setupEmbSelect.value));
+
+        DOM.genSelect.addEventListener('change', (e) => {
+            if(State.isReady) {
+                initModels(e.target.value, State.embedderKey);
+            } else {
+                e.target.value = State.generatorKey;
+            }
+        });
+
+        DOM.embSelect.addEventListener('change', (e) => {
+            if(State.isReady) {
+                initModels(State.generatorKey, e.target.value);
+            } else {
+                e.target.value = State.embedderKey;
+            }
+        });
+
+        const evaluateBrowserSupport = () => {
+            const blocking = [];
+            const warnings = [];
+
+            if (typeof indexedDB === 'undefined' || !indexedDB) {
+                blocking.push('IndexedDB is required for chat history and the document index. It is unavailable (common in locked-down private mode, some in-app browsers, or enterprise policies).');
+            }
+            if (typeof WebAssembly === 'undefined' || typeof WebAssembly.instantiate !== 'function') {
+                blocking.push('WebAssembly is required to run ONNX models. Use an up-to-date Chrome, Firefox, Edge, or Safari.');
+            }
+            if (typeof fetch !== 'function' || typeof Promise === 'undefined') {
+                blocking.push('This app needs fetch() and Promises (a modern browser).');
+            }
+            if (location.protocol === 'file:') {
+                blocking.push('This page was opened via file://. ES modules and the model cache usually fail. Serve this folder over HTTP or HTTPS (for example: python -m http.server).');
+            }
+            if (!('caches' in window)) {
+                warnings.push('Cache Storage API is not available. Downloaded models may not persist between visits.');
+            }
+            if (typeof Worker === 'undefined') {
+                warnings.push('Web Workers are unavailable. Inference may fail or be very slow.');
+            }
+            try {
+                if (window.isSecureContext === false) {
+                    warnings.push('This is not a secure context. Use HTTPS or http://localhost / http://127.0.0.1 so the browser allows required APIs.');
+                }
+            } catch (_) {}
+            const h = location.hostname || '';
+            if (location.protocol === 'http:' && h && !/^(localhost|127\.0\.0\.1|\[::1\])$/i.test(h)) {
+                warnings.push('Plain HTTP on a non-local hostname can trigger stricter limits. Prefer HTTPS when possible.');
+            }
+            return { blocking, warnings };
+        };
+
+        const boot = async () => {
+            if (location.protocol === 'file:') document.getElementById('file-protocol-banner')?.classList.remove('hidden');
+
+            lucide.createIcons();
+
+            const { blocking, warnings } = evaluateBrowserSupport();
+            const storageBlocked = blocking.some((m) => /IndexedDB/i.test(m));
+
+            if (blocking.length) {
+                const extra = warnings.length ? `\n\n${warnings.join('\n\n')}` : '';
+                await showAppAlert(`${blocking.join('\n\n')}${extra}`, 'This environment is not supported');
+                DOM.btnStartDownload.disabled = true;
+                DOM.btnStartDownload.classList.add('opacity-50', 'cursor-not-allowed', 'pointer-events-none');
+            } else if (warnings.length) {
+                await showAppAlert(warnings.join('\n\n'), 'Limited browser support');
+            }
+
+            await checkCacheStatus();
+            await checkDevice();
+
+            let history = [];
+            let bootStorageFailed = false;
+            if (!storageBlocked) {
+                try {
+                    history = await dbOp("chat", "getAll");
+                    if (history.length > 0) {
+                        for (const msg of history) {
+                            await appendMessage(msg.role, msg.content, msg.isHtml, false);
+                        }
+                    }
+                    await renderSources();
+                } catch (e) {
+                    console.error(e);
+                    bootStorageFailed = true;
+                    await showAppAlert('Could not open local database:\n\n' + (e?.message || String(e)), 'Storage error');
+                    DOM.btnStartDownload.disabled = true;
+                    DOM.btnStartDownload.classList.add('opacity-50', 'cursor-not-allowed', 'pointer-events-none');
+                }
+            }
+
+            if (blocking.length || bootStorageFailed) {
+                DOM.setupModal.classList.remove('hidden');
+                return;
+            }
+
+            if (history.length === 0 && State.cachedModels.size === 0) {
+                DOM.setupModal.classList.remove('hidden');
+            } else {
+                initModels(State.generatorKey, State.embedderKey);
+            }
+        };
+
+        boot();
+    </script>
+    <script>
+        (function () {
+            if (!('serviceWorker' in navigator) || location.protocol === 'file:') return;
+            window.addEventListener('load', function () {
+                navigator.serviceWorker.register('./sw.js').catch(function () {});
+            });
+        })();
+    </script>
+</body>
+</html>
