@@ -91,6 +91,19 @@
             border-left: 3px solid #3b82f6; padding-left: 1em; color: #a1a1aa;
             margin-left: 0; margin-bottom: 0.85em;
         }
+
+        .chat-msg-actions {
+            opacity: 0;
+            max-height: 0;
+            overflow: hidden;
+            transition: opacity 0.12s ease, max-height 0.18s ease;
+            pointer-events: none;
+        }
+        .chat-msg-wrap:focus-within .chat-msg-actions {
+            opacity: 1;
+            max-height: 3rem;
+            pointer-events: auto;
+        }
         
         #drop-overlay { transition: opacity 0.2s ease, visibility 0.2s ease; }
         .drag-active #drop-overlay { opacity: 1; visibility: visible; }
@@ -131,7 +144,7 @@
         }
         #sidebar .ss-main {
             font-size: 0.75rem !important;
-            min-height: 2rem !important;
+            min-height: 2.5rem !important;
             padding: 0.28rem 0.5rem !important;
         }
 
@@ -161,45 +174,46 @@
         marked.use({ breaks: true, gfm: true });
     </script>
 
-    <div id="setup-modal" class="hidden fixed inset-0 z-[85] flex items-center justify-center bg-black/80 backdrop-blur-md transition-opacity p-4">
-        <div class="bg-zinc-900 border border-zinc-800 p-6 rounded-2xl max-w-md w-full shadow-2xl relative overflow-hidden animate-slide-in max-h-[90vh] overflow-y-auto flex flex-col">
-            <div class="absolute top-0 left-0 w-full h-1 bg-blue-500"></div>
-            
-            <h2 class="text-xl font-semibold text-white flex items-center gap-2 mb-2">
-                <i data-lucide="brain-circuit" class="w-5 h-5 text-blue-400"></i>
+    <div id="setup-modal" class="hidden fixed inset-0 z-[85] flex items-end sm:items-center justify-center bg-black/80 backdrop-blur-md transition-opacity p-0 sm:p-4 pt-[env(safe-area-inset-top)]">
+        <div class="bg-zinc-900 border border-zinc-800 border-b-0 sm:border-b rounded-t-2xl sm:rounded-2xl max-w-md w-full max-h-[min(92dvh,52rem)] sm:max-h-[90vh] shadow-2xl relative overflow-hidden animate-slide-in flex flex-col min-h-0 mb-0 sm:mb-0">
+            <div class="absolute top-0 left-0 w-full h-1 bg-blue-500 z-10 rounded-t-2xl sm:rounded-t-2xl"></div>
+            <div class="overflow-y-auto overscroll-contain flex flex-col min-h-0 px-4 pt-5 pb-[max(1rem,env(safe-area-inset-bottom))] sm:p-6 sm:pb-6 gap-1">
+            <h2 class="text-lg sm:text-xl font-semibold text-white flex items-center gap-2 mb-1 sm:mb-2 shrink-0">
+                <i data-lucide="brain-circuit" class="w-5 h-5 text-blue-400 shrink-0"></i>
                 Welcome to BrowserLM
             </h2>
-            
-            <p class="text-sm text-zinc-400 mb-5 leading-relaxed">
-                This is a fully local AI client. Chat with the model or upload your own documents (PDF, TXT, CSV) and ask questions about them.
-                <strong class="text-zinc-300">Your files are never uploaded</strong> — all processing happens in this browser.
+
+            <p class="text-xs sm:text-sm text-zinc-400 mb-3 sm:mb-4 leading-snug sm:leading-relaxed shrink-0">
+                Local AI in your browser — chat or ask about your documents (PDF, TXT, CSV).
+                <strong class="text-zinc-300">Files stay on device.</strong>
             </p>
-            
-            <div class="bg-zinc-950 border border-zinc-800 rounded-xl p-4 mb-6 space-y-3">
-                <div class="flex justify-between items-center text-sm">
-                    <span class="text-zinc-400">Hardware acceleration:</span>
-                    <span id="setup-gpu-status" class="font-medium text-amber-400">Checking...</span>
+
+            <div class="bg-zinc-950 border border-zinc-800 rounded-xl p-3 sm:p-4 mb-4 space-y-2 sm:space-y-3 shrink-0">
+                <div class="flex flex-col gap-1 sm:flex-row sm:justify-between sm:items-center text-xs sm:text-sm">
+                    <span class="text-zinc-400 shrink-0">Hardware acceleration:</span>
+                    <span id="setup-gpu-status" class="font-medium text-amber-400 text-right sm:text-left break-words max-w-full">Checking...</span>
                 </div>
-                <div class="pt-3 mt-3 border-t border-zinc-800">
-                    <label class="block text-xs text-zinc-500 mb-2">Choose AI model (LLM):</label>
-                    <select id="setup-model-select" class="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2 text-zinc-200 text-sm focus:ring-2 focus:ring-blue-500 outline-none mb-3">
+                <div class="pt-2 sm:pt-3 mt-2 border-t border-zinc-800 space-y-2">
+                    <label class="block text-[11px] sm:text-xs text-zinc-500 mb-1">Choose AI model (LLM):</label>
+                    <select id="setup-model-select" class="w-full min-h-[44px] bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2 text-zinc-200 text-sm focus:ring-2 focus:ring-blue-500 outline-none">
                     </select>
 
-                    <label class="block text-xs text-zinc-500 mb-2">Embedding model:</label>
-                    <select id="setup-emb-select" class="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2 text-zinc-200 text-sm focus:ring-2 focus:ring-blue-500 outline-none">
+                    <label class="block text-[11px] sm:text-xs text-zinc-500 mb-1 mt-2">Embedding model:</label>
+                    <select id="setup-emb-select" class="w-full min-h-[44px] bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2 text-zinc-200 text-sm focus:ring-2 focus:ring-blue-500 outline-none">
                     </select>
                 </div>
             </div>
 
-            <div class="flex items-center justify-between">
-                <div class="text-xs text-zinc-500 flex flex-col">
+            <div class="flex flex-col-reverse sm:flex-row sm:items-center sm:justify-between gap-3 mt-auto pt-1 shrink-0">
+                <div class="text-[11px] sm:text-xs text-zinc-500 flex flex-col gap-0.5">
                     <span>Download size:</span>
                     <span id="setup-size-estimate" class="text-zinc-300 font-medium">~0 MB</span>
                 </div>
-                <button id="btn-start-download" class="px-5 py-2.5 bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium rounded-xl transition-all shadow-lg shadow-blue-900/20 active:scale-95 flex items-center gap-2">
+                <button id="btn-start-download" type="button" class="w-full sm:w-auto justify-center px-5 py-3 sm:py-2.5 bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium rounded-xl transition-all shadow-lg shadow-blue-900/20 active:scale-[0.98] flex items-center gap-2 shrink-0">
                     <span id="btn-start-text">Get started</span>
                     <i data-lucide="arrow-right" class="w-4 h-4"></i>
                 </button>
+            </div>
             </div>
         </div>
     </div>
@@ -267,7 +281,7 @@
                 </div>
             </div>
 
-            <div class="p-4 border-b border-zinc-800">
+            <div class="px-4 border-b border-zinc-800  h-[80px] flex items-center justify-center">
                 <label id="label-file-upload" class="relative overflow-hidden flex items-center justify-center gap-2 w-full py-2.5 px-4 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-200 border border-zinc-700 cursor-pointer text-sm font-medium transition-all active:scale-[0.98]">
                     <i data-lucide="file-plus" class="w-4 h-4 text-blue-400"></i>
                     Add documents
@@ -275,12 +289,12 @@
                 </label>
             </div>
 
-            <div class="flex-1 min-h-0 min-w-0 overflow-y-auto overscroll-y-contain p-3 space-y-2" id="sources-list"></div>
+            <div class="flex-1 min-h-0 min-w-0 overflow-y-auto overscroll-y-contain p-3" id="sources-list"></div>
 
-            <div id="sidebar-settings" class="shrink-0 flex flex-col min-h-0 max-h-[min(46vh,380px)] overflow-y-auto overscroll-y-contain border-t border-zinc-800 bg-zinc-950/50 p-4 space-y-3">
+            <div id="sidebar-settings" class="shrink-0 flex flex-col min-h-0 max-h-[min(46vh,380px)] overflow-y-auto overscroll-y-contain border-t border-zinc-800 bg-zinc-950/50 p-4">
                 <div class="flex items-center justify-between mb-1">
                     <label class="text-[11px] font-medium text-zinc-500 uppercase tracking-wider">Generation (LLM)</label>
-                    <span id="device-badge" class="text-[9px] px-1.5 py-0.5 rounded-md bg-zinc-800 border border-zinc-700 text-zinc-400 font-mono">...</span>
+                    <span id="device-badge" class="text-[9px] px-1.5 py-0.5 rounded-md bg-zinc-800 border border-zinc-700 text-zinc-400 font-mono leading-none">...</span>
                 </div>
                 <select id="select-gen-model" class="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-2 py-2 text-zinc-200 text-xs focus:ring-2 focus:ring-blue-500/50 outline-none transition-all cursor-pointer">
                 </select>
@@ -291,9 +305,8 @@
                 <select id="select-emb-model" class="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-2 py-2 text-zinc-200 text-xs focus:ring-2 focus:ring-blue-500/50 outline-none transition-all cursor-pointer">
                 </select>
                 
-                <div class="mt-3 pt-3 border-t border-zinc-800 space-y-2">
-                    <div class="text-[11px] font-medium text-zinc-500 uppercase tracking-wider">Model cache</div>
-                    <div id="cache-models-panel" class="space-y-2 text-xs"></div>
+                <div class="mt-4 border-t border-zinc-800">
+                    <div id="cache-models-panel" class="text-xs"></div>
                 </div>
 
                 <button type="button" id="btn-clear-sources" class="w-full py-2 px-3 rounded-lg border border-red-900/30 text-red-400 text-xs hover:bg-red-950/50 transition-colors flex items-center justify-center gap-2 mt-4">
@@ -319,7 +332,7 @@
                 </button>
             </header>
 
-            <div id="progress-wrap" class="hidden shrink-0 border-b border-zinc-800 bg-zinc-900/50 p-3 shadow-inner">
+            <div id="progress-wrap" class="hidden shrink-0 border-b border-zinc-800 bg-zinc-900/50 px-3 shadow-inner h-[100px] md:h-[80px]  flex flex-col flex-nowrap justify-center">
                 <div class="flex justify-between items-center gap-2 mb-2">
                     <div class="text-xs text-zinc-300 font-medium flex items-center gap-2 min-w-0" id="progress-label">
                         <i data-lucide="loader" class="w-3 h-3 animate-spin text-blue-400 shrink-0"></i>
@@ -345,7 +358,7 @@
             <div id="chat-scroll" class="flex-1 overflow-y-auto p-4 lg:p-6 space-y-6 scroll-smooth">
             </div>
 
-            <footer class="shrink-0 p-4 lg:p-6 border-t border-zinc-800 bg-zinc-950/90 backdrop-blur-xl relative">
+            <footer class="shrink-0 py-3 px-4 lg:p-6 border-t border-zinc-800 bg-zinc-950/90 backdrop-blur-xl relative">
                 <div class="max-w-4xl mx-auto relative">
                     <form id="chat-form" class="relative flex items-end gap-2 bg-zinc-900 border border-zinc-700 rounded-2xl p-2 focus-within:ring-2 focus-within:ring-blue-500/50 transition-all shadow-sm">
                         <textarea
@@ -365,10 +378,11 @@
                             <i data-lucide="send" class="w-4 h-4 ml-0.5"></i>
                         </button>
                     </form>
-                    <div class="text-center mt-3 space-y-1">
+                    <div class="text-center mt-2 md:mt-3 space-y-1">
                         <p class="text-[10px] text-zinc-600">
-                            AI can make mistakes. Verify facts against your original documents.
-                            <a href="https://github.com/nfyaka/BrowserLM" target="_blank" rel="noopener noreferrer" class="text-zinc-600 hover:text-zinc-400 transition-colors">Project on GitHub</a>
+                            AI can make mistakes. 
+                            <span class="hidden md:inline">Verify facts against your original documents.</span>
+                            <a href="https://github.com/nfyaka/BrowserLM" target="_blank" rel="noopener noreferrer" class="text-zinc-600 hover:text-zinc-400 transition-colors underline underline-offset-2">Project on GitHub</a>
                         </p>
                     </div>
                 </div>
@@ -407,6 +421,12 @@
         const marked = globalThis.marked;
         const lucide = globalThis.lucide;
 
+        if (marked?.setOptions) {
+            try {
+                marked.setOptions({ gfm: true, breaks: true });
+            } catch (_) {}
+        }
+
         const escHtml = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
 
         const sanitizeChatHtml = (dirty) => {
@@ -418,6 +438,14 @@
             } catch (_) {
                 return escHtml(dirty);
             }
+        };
+
+        const assistantMarkdownToSafeHtml = (md) => {
+            const t = md ?? '';
+            try {
+                if (marked?.parse) return sanitizeChatHtml(marked.parse(t));
+            } catch (_) {}
+            return sanitizeChatHtml(String(t).replace(/\n/g, '<br>'));
         };
 
         const ENV_FETCH_BASE = env.fetch.bind(env);
@@ -457,7 +485,8 @@
                 paramsShort: "350M",
                 paramBillions: 0.35,
                 approxSizeMb: 700,
-                dtypes: [{ device: "webgpu", dtype: "q4f16" }, { device: "wasm", dtype: "q8" }]
+                wasmApproxSizeMb: 1400,
+                dtypes: [{ device: "webgpu", dtype: "q4f16" }, { device: "wasm", dtype: "fp32" }]
             },
             granite_350m: {
                 id: "onnx-community/granite-4.0-350m-ONNX-web",
@@ -465,7 +494,8 @@
                 paramsShort: "350M",
                 paramBillions: 0.35,
                 approxSizeMb: 350,
-                dtypes: [{ device: "webgpu", dtype: "q4f16" }, { device: "wasm", dtype: "q8" }]
+                wasmApproxSizeMb: 1400,
+                dtypes: [{ device: "webgpu", dtype: "q4f16" }, { device: "wasm", dtype: "fp32" }]
             },
             lfm2_700m: {
                 id: "onnx-community/LFM2-700M-ONNX",
@@ -473,7 +503,8 @@
                 paramsShort: "700M",
                 paramBillions: 0.7,
                 approxSizeMb: 720,
-                dtypes: [{ device: "webgpu", dtype: "q4f16" }, { device: "wasm", dtype: "q8" }]
+                wasmApproxSizeMb: 2800,
+                dtypes: [{ device: "webgpu", dtype: "q4f16" }, { device: "wasm", dtype: "fp32" }]
             },
             llama32_1b: {
                 id: "onnx-community/Llama-3.2-1B-Instruct-q4f16",
@@ -481,7 +512,8 @@
                 paramsShort: "1B",
                 paramBillions: 1,
                 approxSizeMb: 900,
-                dtypes: [{ device: "webgpu", dtype: "q4f16" }, { device: "wasm", dtype: "q8" }]
+                webGpuOnly: true,
+                dtypes: [{ device: "webgpu", dtype: "q4f16" }]
             },
             gemma3_1b: {
                 id: "onnx-community/gemma-3-1b-it-ONNX",
@@ -489,7 +521,8 @@
                 paramsShort: "1B",
                 paramBillions: 1,
                 approxSizeMb: 1300,
-                dtypes: [{ device: "webgpu", dtype: "q4f16" }, { device: "wasm", dtype: "q8" }]
+                wasmApproxSizeMb: 5200,
+                dtypes: [{ device: "webgpu", dtype: "q4f16" }, { device: "wasm", dtype: "fp32" }]
             },
             phi35_mini: {
                 id: "onnx-community/Phi-3.5-mini-instruct-onnx-web",
@@ -497,7 +530,8 @@
                 paramsShort: "~3.8B",
                 paramBillions: 3.8,
                 approxSizeMb: 2300,
-                dtypes: [{ device: "webgpu", dtype: "q4f16" }, { device: "wasm", dtype: "q8" }]
+                webGpuOnly: true,
+                dtypes: [{ device: "webgpu", dtype: "q4f16" }]
             },
             lfm25_vl_450m: {
                 id: "onnx-community/LFM2.5-VL-450M-ONNX",
@@ -639,6 +673,8 @@
             isLoading: false,
             isReady: false,
             device: "",
+            webgpuAdapterAvailable: false,
+            shaderF16Supported: false,
             cachedModels: new Set(),
             cachedEmb: new Set(),
             slimSelects: [],
@@ -1030,16 +1066,35 @@
             lucide.createIcons();
         };
 
+        const chatMsgActionsHtml = (variant) => {
+            const rowCls = variant === 'user'
+                ? 'max-w-[85%] self-end justify-end'
+                : 'w-full pl-11 justify-start';
+            return `
+                <div class="chat-msg-actions flex flex-wrap gap-1 ${rowCls}">
+                    <button type="button" class="chat-msg-btn-copy inline-flex items-center rounded-md px-2 py-1 text-[11px] text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/80 transition-colors">
+                        <i data-lucide="copy" class="w-3.5 h-3.5 shrink-0"></i>
+                    </button>
+                    <button type="button" class="chat-msg-btn-del inline-flex items-center rounded-md px-2 py-1 text-[11px] text-zinc-400 hover:text-red-400 hover:bg-red-500/10 transition-colors">
+                        <i data-lucide="trash-2" class="w-3.5 h-3.5 shrink-0"></i>
+                    </button>
+                </div>`;
+        };
+
         const appendMessage = async (role, content, isHtml = false, saveToDb = true, opts = {}) => {
             const wrap = document.createElement('div');
-            wrap.className = `flex w-full animate-fade-in-up ${role === 'user' ? 'justify-end' : 'justify-start'}`;
-            
+            wrap.setAttribute('tabindex', '0');
+            wrap.className = role === 'user'
+                ? 'chat-msg-wrap group flex flex-col w-full animate-fade-in-up items-end gap-1 outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 rounded-lg'
+                : 'chat-msg-wrap group flex flex-col w-full animate-fade-in-up gap-1 outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 rounded-lg';
+
             let bubbleHtml = '';
             if (role === 'user') {
                 bubbleHtml = `
-                    <div class="max-w-[85%] bg-blue-600 text-white rounded-2xl rounded-tr-sm px-4 py-3 text-[15px] shadow-md break-words">
+                    <div class="chat-msg-body max-w-[85%] bg-blue-600 text-white rounded-2xl rounded-tr-sm px-4 py-3 text-[15px] shadow-md break-words">
                         ${isHtml ? content : sanitizeChatHtml(content).replace(/\n/g, '<br>')}
                     </div>
+                    ${chatMsgActionsHtml('user')}
                 `;
             } else {
                 const uniqueId = "asst-" + Date.now() + "-" + Math.random().toString(36).slice(2, 8);
@@ -1050,36 +1105,99 @@
                             <span class="min-w-0">Searching documents…</span>
                         </div>
                     </div>` : '';
+                const bodyCls = `chat-msg-body ${content ? '' : (!opts.pipeline ? 'animate-pulse-slow text-zinc-500' : 'text-zinc-300 min-h-[1.25em]')}`;
                 bubbleHtml = `
-                    <div class="flex gap-3 max-w-[95%] lg:max-w-[85%]">
+                    <div class="flex gap-3 max-w-[95%] lg:max-w-[85%] self-start">
                         <div class="w-8 h-8 rounded-full bg-zinc-800 border border-zinc-700 flex items-center justify-center shrink-0 mt-1 shadow-inner">
                             <i data-lucide="bot" class="w-4 h-4 text-blue-400"></i>
                         </div>
                         <div class="flex flex-col gap-1 min-w-0 w-full">
                             <div class="bg-zinc-900 border border-zinc-800 text-zinc-200 rounded-2xl rounded-tl-sm px-5 py-4 shadow-sm prose-chat w-full">
                                 ${pipelineBlock}
-                                <div id="${uniqueId}" class="${content ? '' : (!opts.pipeline ? 'animate-pulse-slow text-zinc-500' : 'text-zinc-300 min-h-[1.25em]')}">
-                                    ${content ? (isHtml ? content : sanitizeChatHtml(marked.parse(content))) : (opts.pipeline ? '' : 'Thinking...')}
+                                <div id="${uniqueId}" class="${bodyCls}">
+                                    ${content ? (isHtml ? content : assistantMarkdownToSafeHtml(content)) : (opts.pipeline ? '' : 'Thinking...')}
                                 </div>
                             </div>
                             <div id="${uniqueId}-meta" class="text-[10px] text-zinc-500 pl-1 h-3 empty:hidden"></div>
                         </div>
                     </div>
+                    ${chatMsgActionsHtml('assistant')}
                 `;
                 wrap.dataset.msgId = uniqueId;
             }
-            
+
             wrap.innerHTML = bubbleHtml;
             DOM.chatScroll.appendChild(wrap);
             DOM.chatScroll.scrollTop = DOM.chatScroll.scrollHeight;
             lucide.createIcons();
 
+            if (opts.chatDbId != null) wrap.dataset.chatId = String(opts.chatDbId);
             if (saveToDb) {
-                await dbOp("chat", "add", { role, content, isHtml, timestamp: Date.now() });
+                const addedId = await dbOp("chat", "add", { role, content, isHtml, timestamp: Date.now() });
+                if (addedId != null) wrap.dataset.chatId = String(addedId);
             }
-            
-            return wrap.dataset.msgId; 
+
+            return wrap.dataset.msgId;
         };
+
+        const setMessageRowChatId = (assistantDomId, chatId) => {
+            const inner = document.getElementById(assistantDomId);
+            const row = inner?.closest('.chat-msg-wrap');
+            if (row && chatId != null) row.dataset.chatId = String(chatId);
+        };
+
+        const copyPlainToClipboard = async (text) => {
+            const t = text ?? '';
+            try {
+                await navigator.clipboard.writeText(t);
+            } catch (_) {
+                const ta = document.createElement('textarea');
+                ta.value = t;
+                ta.setAttribute('readonly', '');
+                ta.style.position = 'fixed';
+                ta.style.left = '-9999px';
+                document.body.appendChild(ta);
+                ta.select();
+                try { document.execCommand('copy'); } catch (__) {}
+                ta.remove();
+            }
+        };
+
+        DOM.chatScroll.addEventListener('pointerdown', (e) => {
+            const wrap = e.target.closest?.('.chat-msg-wrap');
+            if (!wrap || !DOM.chatScroll.contains(wrap)) return;
+            if (e.target.closest?.('button, a, input, textarea, select, [contenteditable="true"], label')) return;
+            if (document.activeElement === wrap) return;
+            wrap.focus({ preventScroll: true });
+        }, true);
+
+        DOM.chatScroll.addEventListener('click', async (e) => {
+            const copyBtn = e.target.closest?.('.chat-msg-btn-copy');
+            const delBtn = e.target.closest?.('.chat-msg-btn-del');
+            if (!copyBtn && !delBtn) return;
+            const wrap = e.target.closest?.('.chat-msg-wrap');
+            if (!wrap) return;
+            e.preventDefault();
+            if (copyBtn) {
+                const body = wrap.querySelector('.chat-msg-body');
+                await copyPlainToClipboard((body ? body.innerText : '').trim());
+                return;
+            }
+            if (delBtn) {
+                if (!(await showAppConfirm('Delete this message from the chat?', '', { confirmLabel: 'Delete', cancelLabel: 'Cancel' }))) return;
+                const id = wrap.dataset.chatId;
+                if (id) {
+                    try {
+                        await dbOp('chat', 'delete', Number(id));
+                    } catch (err) {
+                        await showAppAlert('Could not delete: ' + (err?.message || String(err)), 'Error');
+                        return;
+                    }
+                }
+                wrap.remove();
+                lucide.createIcons();
+            }
+        });
 
         const CACHE_ICON_SVG = `<svg class="ss-opt-icon  w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>`;
         const CACHE_ICON_PH = `<span class="ss-opt-icon-ph  w-5" aria-hidden="true"></span>`;
@@ -1092,11 +1210,7 @@
             }
             if (el) {
                 el.classList.remove('animate-pulse-slow', 'text-zinc-500');
-                if (isFinal) {
-                    el.innerHTML = sanitizeChatHtml(marked.parse(text));
-                } else {
-                    el.innerHTML = sanitizeChatHtml(text.replace(/\n/g, '<br>'));
-                }
+                el.innerHTML = assistantMarkdownToSafeHtml(text);
             }
             if (meta && tokens) {
                 meta.textContent = `${tokens} tok · ~${tps} t/s`;
@@ -1197,10 +1311,27 @@
             updateSetupEstimate();
         };
 
-        const disposeLoadedModels = () => {
+        const disposeLoadedModels = async () => {
+            const emb = State.embedder;
+            const gen = State.generator;
             State.embedder = null;
             State.generator = null;
             State.isReady = false;
+
+            const safeDispose = async (obj) => {
+                if (!obj || typeof obj.dispose !== "function") return;
+                try {
+                    await obj.dispose();
+                } catch (_) {}
+            };
+
+            await safeDispose(emb);
+            if (gen && gen.__kind === "vl") {
+                await safeDispose(gen.processor);
+                await safeDispose(gen.model);
+            } else {
+                await safeDispose(gen);
+            }
         };
 
         const getCachedModelKeys = () => ({
@@ -1231,21 +1362,21 @@
 
             let html = '';
             if (genCached.length) {
-                html += `<div class="text-[10px] text-zinc-500 uppercase tracking-wide mb-1">LLM</div>`;
+                html += `<div class="text-[11px] font-medium text-zinc-500 uppercase tracking-wide mt-4  mb-1">LLM Cache</div>`;
                 genCached.forEach((key) => {
                     const spec = GEN_MODELS[key];
                     html += row('gen', key, spec.label, State.isReady && key === State.generatorKey);
                 });
             }
             if (embCached.length) {
-                html += `<div class="text-[10px] text-zinc-500 uppercase tracking-wide mt-2 mb-1">Embeddings</div>`;
+                html += `<div class="text-[11px] font-medium text-zinc-500 uppercase tracking-wide mt-4 mb-1">Embeddings Cache</div>`;
                 embCached.forEach((key) => {
                     const spec = EMB_MODELS[key];
                     html += row('emb', key, spec.label, State.isReady && key === State.embedderKey);
                 });
             }
             if (!html) {
-                html = '<p class="text-[10px] text-zinc-600 py-1">No cached model files yet (or cache API unavailable).</p>';
+                html = '<p class="text-[11px] font-medium text-zinc-600 py-1">No cached model files yet (or cache API unavailable).</p>';
             }
             DOM.cacheModelsPanel.innerHTML = html;
             lucide.createIcons();
@@ -1270,10 +1401,19 @@
             return { lo, hi: Number(hi.toFixed(1)) };
         };
 
+        const approxGenDownloadMb = (spec) => {
+            if (!spec) return 0;
+            if ((State.device || "wasm") === "wasm" && spec.wasmApproxSizeMb != null) {
+                return spec.wasmApproxSizeMb;
+            }
+            return spec.approxSizeMb || 0;
+        };
+
         const buildGenPlain = (key, spec) => {
             const { lo, hi } = estimateGenTpsRange(spec, State.device || 'wasm');
             const devHint = (State.device || 'wasm') === 'webgpu' ? 'WebGPU' : 'WASM';
-            return `${spec.label} · ${spec.paramsShort} · ~${spec.approxSizeMb} MB · ~${lo}–${hi} tok/s (${devHint})`;
+            const sz = approxGenDownloadMb(spec);
+            return `${spec.label} · ${spec.paramsShort} · ~${sz} MB · ~${lo}–${hi} tok/s (${devHint})`;
         };
         const buildGenHtml = (key, spec) => {
             const icon = State.cachedModels.has(key) ? CACHE_ICON_SVG : CACHE_ICON_PH;
@@ -1287,6 +1427,13 @@
             return `<span class="flex items-start gap-2 text-left">${icon}<span class="min-w-0 leading-snug">${escHtml(buildEmbPlain(key, spec))}</span></span>`;
         };
 
+        const genModelEntriesForUi = () =>
+            Object.entries(GEN_MODELS).filter(([, spec]) => {
+                if (spec.vl && !State.shaderF16Supported) return false;
+                if (spec.webGpuOnly && State.device === "wasm") return false;
+                return true;
+            });
+
         const destroySlimSelects = () => {
             State.slimSelects.forEach((s) => { try { s.destroy(); } catch (e) {} });
             State.slimSelects = [];
@@ -1294,7 +1441,7 @@
 
         const initSlimSelects = () => {
             const SS = window.SlimSelect;
-            const genData = Object.entries(GEN_MODELS).map(([key, spec]) => ({
+            const genData = genModelEntriesForUi().map(([key, spec]) => ({
                 text: buildGenPlain(key, spec),
                 value: key,
                 html: buildGenHtml(key, spec),
@@ -1308,7 +1455,7 @@
             }));
 
             const fallbackNative = () => {
-                Object.entries(GEN_MODELS).forEach(([key, spec]) => {
+                genModelEntriesForUi().forEach(([key, spec]) => {
                     DOM.setupModelSelect.add(new Option(buildGenPlain(key, spec), key, false, key === State.generatorKey));
                     DOM.genSelect.add(new Option(buildGenPlain(key, spec), key, false, key === State.generatorKey));
                 });
@@ -1363,29 +1510,52 @@
         };
 
         const checkDevice = async () => {
-            let hasGpu = false;
+            State.webgpuAdapterAvailable = false;
+            State.shaderF16Supported = false;
+            let adapter = null;
             if (navigator.gpu) {
                 try {
-                    const adapter = await navigator.gpu.requestAdapter();
-                    if (adapter) hasGpu = true;
-                } catch(e) {}
+                    adapter = await navigator.gpu.requestAdapter();
+                    State.webgpuAdapterAvailable = Boolean(adapter);
+                    if (adapter && adapter.features && typeof adapter.features.has === "function") {
+                        State.shaderF16Supported = adapter.features.has("shader-f16");
+                    }
+                } catch (e) {}
             }
-            State.device = hasGpu ? "webgpu" : "wasm";
+            State.device =
+                State.webgpuAdapterAvailable && State.shaderF16Supported ? "webgpu" : "wasm";
             DOM.deviceBadge.textContent = State.device.toUpperCase();
-            
-            if (hasGpu) {
-                DOM.setupGpu.textContent = "WebGPU supported";
+            if (State.device === "webgpu") {
+                DOM.deviceBadge.title = "WebGPU with shader-f16 (FP16)";
+            } else if (State.webgpuAdapterAvailable) {
+                DOM.deviceBadge.title = "WASM: GPU lacks FP16 shader support for this stack";
+            } else {
+                DOM.deviceBadge.title = "WASM (CPU)";
+            }
+
+            if (State.webgpuAdapterAvailable && State.shaderF16Supported) {
+                DOM.setupGpu.textContent = "WebGPU supported (FP16)";
                 DOM.setupGpu.className = "font-medium text-emerald-400";
+            } else if (State.webgpuAdapterAvailable) {
+                DOM.setupGpu.textContent = "WebGPU without FP16 shaders — CPU (WASM)";
+                DOM.setupGpu.className = "font-medium text-amber-500";
             } else {
                 DOM.setupGpu.textContent = "CPU only (WASM)";
                 DOM.setupGpu.className = "font-medium text-amber-500";
-                const currentSaved = localStorage.getItem(LS_MODEL_KEY) || localStorage.getItem(LS_MODEL_KEY_LEGACY);
-                if (!currentSaved || !GEN_MODELS[currentSaved]) {
+            }
+
+            if (!State.shaderF16Supported || State.device === "wasm") {
+                const currentSaved =
+                    localStorage.getItem(LS_MODEL_KEY) || localStorage.getItem(LS_MODEL_KEY_LEGACY);
+                const savedSpec = currentSaved && GEN_MODELS[currentSaved];
+                const blocked =
+                    !currentSaved ||
+                    !savedSpec ||
+                    (!State.shaderF16Supported && savedSpec.vl) ||
+                    (State.device === "wasm" && savedSpec.webGpuOnly);
+                if (blocked) {
                     State.generatorKey = "lfm2_350m";
-                    DOM.setupModelSelect.value = State.generatorKey;
-                } else if (GEN_MODELS[currentSaved].vl) {
-                    State.generatorKey = "lfm2_350m";
-                    DOM.setupModelSelect.value = State.generatorKey;
+                    if (DOM.setupModelSelect) DOM.setupModelSelect.value = State.generatorKey;
                     localStorage.setItem(LS_MODEL_KEY, State.generatorKey);
                 }
             }
@@ -1404,7 +1574,7 @@
                 document.getElementById('btn-start-text').textContent = "Launch";
             } else {
                 let size = 0;
-                if (!isCachedLLM) size += GEN_MODELS[val]?.approxSizeMb || 0;
+                if (!isCachedLLM) size += approxGenDownloadMb(GEN_MODELS[val]) || 0;
                 if (!isCachedEmb) size += EMB_MODELS[embVal]?.approxSizeMb || 0;
                 
                 DOM.setupSize.textContent = `~${size} MB (will be saved to cache)`;
@@ -1413,11 +1583,27 @@
             }
         };
 
+        let modelLoadCleanupGate = Promise.resolve();
+
         const initModels = async (modelKey, embKey) => {
-            const myGen = ++State.modelLoadGeneration;
-            State.modelLoadAbortController?.abort();
-            State.modelLoadAbortController = new AbortController();
-            const ac = State.modelLoadAbortController;
+            await modelLoadCleanupGate;
+
+            let releaseModelLoadGate;
+            modelLoadCleanupGate = new Promise((r) => {
+                releaseModelLoadGate = r;
+            });
+
+            try {
+                try {
+                    await disposeLoadedModels();
+                } catch (dErr) {
+                    console.warn("disposeLoadedModels:", dErr);
+                }
+
+                const myGen = ++State.modelLoadGeneration;
+                State.modelLoadAbortController?.abort();
+                State.modelLoadAbortController = new AbortController();
+                const ac = State.modelLoadAbortController;
 
             env.fetch = (input, init) => {
                 const base = init && typeof init === 'object' ? { ...init } : {};
@@ -1454,10 +1640,15 @@
                 if (myGen !== State.modelLoadGeneration) return;
 
                 const spec = GEN_MODELS[modelKey];
+                if (spec.webGpuOnly && State.device === "wasm") {
+                    throw new Error(
+                        "This model is only published as quantized ONNX for WebGPU. Use a device with WebGPU + FP16 shaders, or pick a CPU-friendly model (e.g. LFM2 350M).",
+                    );
+                }
                 if (spec.vl) {
-                    if (State.device !== "webgpu") {
+                    if (!State.shaderF16Supported || State.device !== "webgpu") {
                         throw new Error(
-                            "This vision-language model requires WebGPU. Enable GPU acceleration or pick a text-only model (e.g. LFM2 350M).",
+                            "This vision-language model requires WebGPU with FP16 shader support (shader-f16). Use a compatible GPU/browser or pick a text-only model (e.g. LFM2 350M).",
                         );
                     }
                     const pc = (e) => dlManager.update(e);
@@ -1495,7 +1686,7 @@
             } catch (e) {
                 if (myGen !== State.modelLoadGeneration) return;
 
-                disposeLoadedModels();
+                await disposeLoadedModels();
                 dlManager.dismiss();
 
                 const aborted = e?.name === 'AbortError' || ac.signal.aborted;
@@ -1507,7 +1698,7 @@
                     console.error(e);
                     setStatus('Initialization error', 'err');
 
-                    let errDetails = e.message;
+                    let errDetails = formatOnnxLoadError(e?.message ?? e);
                     if (errDetails.includes('401') || errDetails.includes('404')) {
                         errDetails += "\n*(The model may be private or lack public ONNX weights. Try selecting a different one.)*";
                     }
@@ -1520,6 +1711,12 @@
                     setUiGate(false);
                 }
                 finishFetchPatchIfCurrent();
+            }
+            } finally {
+                try {
+                    await new Promise((r) => setTimeout(r, 64));
+                } catch (_) {}
+                releaseModelLoadGate?.();
             }
         };
 
@@ -1654,6 +1851,33 @@
             return d / (Math.sqrt(na) * Math.sqrt(nb));
         };
 
+        const formatOnnxLoadError = (msg) => {
+            const s = msg != null ? String(msg) : '';
+            const low = s.toLowerCase();
+            if (
+                low.includes('gatherblockquantized')
+                || low.includes('gather_quant')
+                || (low.includes('could not find an implementation') && low.includes('gather'))
+            ) {
+                return `${s}\n\n*(CPU/WASM cannot run this ONNX operator. Pick LFM2 / Granite / LFM2 700M / Gemma with FP32 on CPU, or use WebGPU with FP16 shaders; avoid WASM-only block-quantized graphs.)*`;
+            }
+            return s;
+        };
+
+        const formatInferenceGpuError = (err) => {
+            const msg = err?.message != null ? String(err.message) : String(err);
+            const low = msg.toLowerCase();
+            if (
+                low.includes("f16")
+                || low.includes("shader-f16")
+                || low.includes("ortrun")
+                || low.includes("non-zero status")
+            ) {
+                return `${msg}\n\n*(Tip: this GPU stack may lack FP16 WebGPU shaders. Reload and use a text-only model with WASM/CPU, or try another device or browser.)*`;
+            }
+            return msg;
+        };
+
         const formatChunkCount = (n) => `${n} chunk${n === 1 ? '' : 's'}`;
 
         const handleQuery = async (query) => {
@@ -1774,7 +1998,8 @@
                 const tpsFinal = elapsedFinal > 0 ? Math.round(tokens / elapsedFinal) : 0;
                 updateMessage(asstMsgId, generatedText, tokens, tpsFinal, true);
                 
-                await dbOp("chat", "add", { role: "assistant", content: generatedText, isHtml: false, timestamp: Date.now() });
+                const savedId = await dbOp("chat", "add", { role: "assistant", content: generatedText, isHtml: false, timestamp: Date.now() });
+                setMessageRowChatId(asstMsgId, savedId);
 
                 setStatus('Ready', 'ready');
             } catch (e) {
@@ -1786,13 +2011,18 @@
                     const meta = document.getElementById(`${asstMsgId}-meta`);
                     if (meta) meta.textContent += ' · stopped';
                     if (generatedText.trim()) {
-                        await dbOp("chat", "add", { role: "assistant", content: generatedText, isHtml: false, timestamp: Date.now() });
+                        const savedAbortId = await dbOp("chat", "add", { role: "assistant", content: generatedText, isHtml: false, timestamp: Date.now() });
+                        setMessageRowChatId(asstMsgId, savedAbortId);
                     }
                     setStatus('Stopped', 'ready');
                     return;
                 }
                 console.error(e);
-                await appendMessage('assistant', '❌ Generation error: ' + e.message, false);
+                await appendMessage(
+                    'assistant',
+                    '❌ Generation error: ' + formatInferenceGpuError(e),
+                    false,
+                );
                 setStatus('Error', 'err');
             } finally {
                 State.isLoading = false;
@@ -1957,7 +2187,7 @@
                     ((kind === 'gen' && State.generatorKey === key) ||
                         (kind === 'emb' && State.embedderKey === key));
                 if (touchesActive) {
-                    disposeLoadedModels();
+                    await disposeLoadedModels();
                     State.modelLoadAbortController?.abort();
                     setUiGate(false);
                     setStatus('Model removed from cache', 'err');
@@ -2052,7 +2282,7 @@
                     history = await dbOp("chat", "getAll");
                     if (history.length > 0) {
                         for (const msg of history) {
-                            await appendMessage(msg.role, msg.content, msg.isHtml, false);
+                            await appendMessage(msg.role, msg.content, msg.isHtml, false, { chatDbId: msg.id });
                         }
                     }
                     await renderSources();
